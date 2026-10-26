@@ -308,6 +308,9 @@
     </h1>
     <div class="meta-info">
       Atualizado em {{ gerado_em }} &middot; {{ hoje }}
+      {% if versao_crn %}
+      &middot; CRN {{ versao_crn }}
+      {% endif %}
       {% if detalhe_reunioes_lista %}
       &middot; <span class="link-detalhe-discreto" onclick="toggleDetalhe('detalhe-todos')">detalhamento</span>
       &middot; <span class="link-detalhe-discreto" onclick="exportarReunioesCSV()">exportar CSV</span>

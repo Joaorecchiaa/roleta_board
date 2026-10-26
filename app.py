@@ -1097,9 +1097,13 @@ def _calcular_dados(month_str):
         "hoje": hoje.strftime("%d/%m/%Y"),
         "avisos": avisos,
         # Carimbo de parâmetros com a versão da CRN (regra 4 da migração)
-        # — crn.versao() NÃO EXISTE na biblioteca instalada (só __version__,
-        # "Faltou na CRN"); usa isso até a CRN expor uma função oficial.
+        # — crn.versao() NÃO EXISTE oficialmente na biblioteca (só
+        # __version__, "Faltou na CRN"); crn_bridge.VERSAO_CRN usa o commit
+        # setado pelo cabeçalho de auto-update deste painel quando disponível
+        # (ver nota em crn_bridge.py). "versao_crn" é só a versão, pro rodapé
+        # mostrar "CRN <versão>" perto de "Atualizado em" (pedido do João).
         "carimbo_crn": crn_bridge.carimbo_parametros(month_str),
+        "versao_crn": crn_bridge.VERSAO_CRN,
     }
 
 

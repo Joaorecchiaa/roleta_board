@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ nome_painel }} — {{ month }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --card: #111111;
+    --border: #2a2a2a;
+    --text: #ffffff;
+    --muted: #9a9a9a;
+    --gold: #d4af37;
+    /* Tom mais acinzentado/bronze, mais perto do "5" da logo do João (ver
+       imagem de referência, 06/10) do que o dourado vivo usado nos
+       destaques — só usado no "5" do título e no contorno decorativo. */
+    --gold-logo: #b9a06a;
+    --green: #3ecf8e;
+  }
+  * { box-sizing: border-box; }
+  /* RESPONSIVO (07/10, pedido do João: cada TV/PC tem resolução e escala
+     do Windows diferente — já tentamos acertar um valor fixo manualmente
+     várias vezes e cada tela real dava um resultado diferente do
+     simulado). Em vez de cravar um font-size só, o script
+     "ajustarZoomParaCaber" (fim do <body>) mede o espaço de verdade
+     disponível em CADA computador/tela e ajusta sozinho o maior tamanho
+     que ainda cabe sem rolar — funciona em qualquer resolução/escala sem
+     precisar calibrar na mão de novo. O valor abaixo é só o ponto de
+     partida (antes do JS calcular o ideal, ou se JS estiver desligado). */
+  html { font-size: 16px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 14px 22px 22px;
+    position: relative;
+  }
+  @media (max-width: 700px) { body { padding: 12px 10px 14px; } }
+
+  /* --- Fundo animado "poeira dourada" (mesmo mecanismo do ARENA, cores
+       ajustadas pro preto puro) — fica fixo atrás de tudo. */
+  #bg-particulas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
+
+  .wrap { max-width: 1680px; margin: 0 auto; position: relative; z-index: 1; }
+  header { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding: 6px 4px; overflow: hidden; }
+  /* --- Numeral "5" gigante e esmaecido atrás do título, baseado no
+       elemento decorativo em linha fina da logo (imagem de referência,
+       06/10) — fica só na faixa do cabeçalho, não na página inteira (o
+       fundo continua preto sólido, como pedido antes). */
+  header::before {
+    content: "5";
+    position: absolute;
+    right: -0.12em; top: 50%; transform: translateY(-50%);
+    font-family: "Anton", Impact, "Arial Narrow", sans-serif;
+    font-size: 7rem;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(185, 160, 106, 0.22);
+    pointer-events: none;
+    z-index: 0;
+  }
+  h1 { position: relative; z-index: 1; font-size: 1.75rem; margin: 0; letter-spacing: 1.5px; font-weight: 800; white-space: nowrap; }
+  h1 .palavra-board { color: var(--text); }
+  h1 .palavra-resto { color: var(--text); }
+  /* --- "5" com fonte diferente e cor bronze (fonte de impacto, Anton),
+     levemente sobreposto às palavras ao redor — mesmo espírito da logo de
+     referência (06/10), sem depender de pixels fixos pra um texto
+     dinâmico. */
+  h1 .numero-5 {
+    font-family: "Anton", Impact, "Arial Narrow", sans-serif;
+    font-size: 1.55em;
+    letter-spacing: 0;
+    color: var(--gold-logo);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    vertical-align: middle;
+    display: inline-block;
+    margin: 0 -0.08em;
+    transform: translateY(0.03em);
+    position: relative;
+    z-index: 1;
+  }
+  .meta-info { position: relative; z-index: 1; color: var(--muted); font-size: 0.75rem; }
+  h2 { font-size: 0.8125rem; margin: 0 0 7px; letter-spacing: 0.5px; color: var(--gold); text-transform: uppercase; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    box-sizing: border-box;
+  }
+  .avisos { margin-bottom: 8px; }
+  .aviso { background: #2a1f0a; border: 1px solid #4a3a12; color: var(--gold); border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; margin-bottom: 4px; }
+
+  /* --- Destaque do dia (1º a bater a Meta do dia) ------------------------ */
+  .secao { margin-bottom: 14px; }
+  .destaque-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 900px) {
+    .destaque-grid, .continuo-grid, .squads-grid, .detalhe-grid { grid-template-columns: 1fr; }
+  }
+  .destaque-card { text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .destaque-card .label { color: var(--muted); font-size: 0.75rem; margin-bottom: 6px; }
+  .destaque-card .label .trofeu { color: var(--gold); }
+  .destaque-pessoa { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 10px; }
+  /* Movimento suave só nas fotos de destaque (dia e contínuo) — pedido do
+     João 06/10, "não precisa colocar no detalhamento do dia" (avatar-mini
+     fica parado). Flutuação bem sutil, pra não cansar numa TV ligada o
+     dia todo. */
+  @keyframes flutuar-suave {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .avatar, .avatar-continuo { animation: none; }
+  }
+  .avatar {
+    position: relative;
+    width: 44px; height: 44px; border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.875rem; color: var(--gold);
+    background: #1a1a1a;
+    overflow: hidden;
+    animation: flutuar-suave 4s ease-in-out infinite;
+  }
+  .avatar.tem-foto { background: transparent; }
+  .avatar .foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s; }
+  .avatar .foto.carregada { opacity: 1; }
+  .tem-foto .iniciais-fallback { visibility: hidden; }
+  .destaque-texto { text-align: left; }
+  .destaque-nome { font-weight: 700; font-size: 0.9375rem; }
+  .destaque-stat { color: var(--muted); font-size: 0.75rem; }
+  .destaque-stat b { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .destaque-vazio { color: var(--muted); font-size: 1rem; padding: 4px 0; }
+
+  /* --- Destaque contínuo (recorde até alguém bater) ---------------------- */
+  .continuo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .continuo-card { text-align: center; border-color: var(--gold); position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .continuo-card .label { color: var(--muted); font-size: 0.75rem; margin-bottom: 3px; }
+  .continuo-info { text-align: left; }
+  .avatar-continuo-wrap { display: inline-flex; position: relative; flex-shrink: 0; }
+  .avatar-continuo {
+    position: relative;
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 3px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.0625rem; color: var(--gold);
+    background: #1a1a1a;
+    overflow: hidden;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+    animation: flutuar-suave 4.5s ease-in-out infinite;
+    animation-delay: 0.3s;
+  }
+  .avatar-continuo.tem-foto { background: transparent; }
+  .avatar-continuo .foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s; }
+  .avatar-continuo .foto.carregada { opacity: 1; }
+  .selo-dias {
+    position: absolute; top: -12px; right: -12px;
+    background: var(--gold); color: #000;
+    font-size: 0.625rem; font-weight: 800;
+    border-radius: 999px; padding: 2px 7px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+  .continuo-nome { font-weight: 800; font-size: 1rem; margin-top: 0; }
+  .continuo-stat { color: var(--gold); font-weight: 700; font-size: 0.8125rem; margin-top: 1px; }
+  .continuo-vazio { color: var(--muted); font-size: 1rem; padding: 8px 0; }
+
+  /* --- Meta do time (Sniper + Olympus) ----------------------------------- */
+  .squads-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .squad-card { display: flex; align-items: center; gap: 12px; padding: 9px 14px; }
+  /* width em "ch" (não px fixo) — CORRIGIDO 07/10: com o zoom automático
+     podendo ficar bem maior que antes, uma largura fixa em px não
+     acompanhava a fonte e "Olympus" invadia a barra ao lado. */
+  .squad-card .squad-nome { flex-shrink: 0; width: 8ch; font-weight: 700; font-size: 0.8125rem; margin-bottom: 0; }
+  .squad-bar-wrap { flex: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Barra bem mais fina e discreta (pedido do João, 06/10: "bem menor e
+     mais fino") — era 24px, virou 8px. */
+  .squad-barra { position: relative; flex: 1; height: 8px; background: #1e1e1e; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .squad-barra-fill {
+    position: relative; height: 100%;
+    background: linear-gradient(90deg, #8a6d1a, var(--gold));
+    border-radius: 999px; overflow: hidden;
+    transition: width 0.6s ease;
+  }
+  /* "Movimento" pedido (06/10): brilho diagonal deslizando dentro da barra,
+     igual já valido no ARENA — sinaliza "ao vivo" sem precisar reconsultar
+     o Pipedrive. */
+  .squad-barra-fill::after {
+    content: ""; position: absolute; inset: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    animation: squadBrilho 2.4s ease-in-out infinite;
+  }
+  @keyframes squadBrilho {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(350%); }
+  }
+  .squad-barra-fill.destaque { background: linear-gradient(90deg, var(--green), #5be0a0); box-shadow: 0 0 8px rgba(62, 207, 142, 0.55); }
+  .squad-pct { flex-shrink: 0; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+  .squad-pct b { color: var(--gold); }
+  .squad-pct-detalhe { flex-basis: 100%; font-size: 0.625rem; color: var(--muted); margin-top: 2px; }
+  .squad-pct-detalhe b { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  /* --- Destrinche do % Final do Sniper ------------------------------------ */
+  .destrinche-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .destrinche-card {
+    padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+  }
+  .destrinche-rotulo { font-size: 0.75rem; font-weight: 700; color: var(--text); }
+  .destrinche-peso { font-weight: 400; color: var(--muted); font-size: 0.6875rem; }
+  .destrinche-conta { font-size: 0.6875rem; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .destrinche-pct { font-size: 1.25rem; font-weight: 800; color: var(--gold); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .destrinche-final { border-color: var(--gold); }
+  .destrinche-final .destrinche-pct { color: var(--green); }
+
+  /* --- Detalhamento do dia: SDR (quadradinhos) e Closer Olympus (R$) ----- */
+  .detalhe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
+  .detalhe-grid .card { height: 100%; display: flex; flex-direction: column; }
+  .detalhe-grid .tabela-detalhe { flex: 1; }
+  .tabela-detalhe { width: 100%; border-collapse: collapse; }
+  .tabela-detalhe td { padding: 4px 5px; border-bottom: 1px solid var(--border); font-size: 0.75rem; vertical-align: middle; }
+  .tabela-detalhe tr:last-child td { border-bottom: none; }
+  .tabela-detalhe tr.linha--bateu td { opacity: 0.85; }
+  .col-nome { width: 34%; }
+  .nome-grupo { display: inline-flex; align-items: center; gap: 6px; }
+  .avatar-mini {
+    position: relative; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--gold); display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.5625rem; color: var(--gold); background: #1a1a1a; overflow: hidden; flex-shrink: 0;
+  }
+  .avatar-mini.tem-foto { background: transparent; }
+  .avatar-mini .foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.2s; }
+  .avatar-mini .foto.carregada { opacity: 1; }
+  .nome-grupo .nome { font-weight: 600; }
+  .rotulo { color: var(--muted); font-size: 0.625rem; display: block; margin-bottom: 1px; }
+  .quadradinhos { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; vertical-align: middle; }
+  .quadradinho {
+    width: 10px; height: 10px; border-radius: 2px; border: 1px solid var(--border);
+    background: transparent; display: inline-block;
+  }
+  .quadradinho.preenchido { background: var(--green); border-color: var(--green); }
+  .quadrado-check-grande {
+    display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+    width: 18px; height: 18px; border-radius: 5px; background: var(--green);
+    color: #000; font-weight: 800; font-size: 0.6875rem; line-height: 1;
+  }
+  .valor-rs { font-variant-numeric: tabular-nums; }
+  .valor-rs.bateu { color: var(--green); font-weight: 700; }
+  .selo-a-vista {
+    display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;
+    background: var(--gold); color: #17181c; font-weight: 700; font-size: 0.5625rem;
+    border-radius: 999px; padding: 1px 6px;
+  }
+  .empty { color: var(--muted); font-size: 0.75rem; padding: 4px 0; }
+
+  /* --- Oculto a pedido (07/10): taxas Financeiro/Reuniões por baixo da
+       barra da Meta do time — fica só o % final, sem poluir. Classe em
+       vez de apagar o bloco, pra ser fácil reativar se precisar. --- */
+  .oculto { display: none !important; }
+
+  /* --- Link discreto "detalhamento" no canto superior direito (07/10,
+       pedido do João: trocar os botões "Detalhes" por linha de SDR por um
+       único campo pequeno, disfarçado, que não rouba atenção) --- */
+  .link-detalhe-discreto {
+    font-size: 0.625rem; color: var(--muted); opacity: 0.55; cursor: pointer;
+    text-decoration: underline dotted; text-underline-offset: 2px;
+  }
+  .link-detalhe-discreto:hover { opacity: 0.9; color: var(--gold); }
+  .painel-detalhe-todos { margin-top: 6px; }
+  .painel-detalhe-todos td { padding: 6px 5px 8px 5px; background: rgba(255,255,255,0.03); }
+  .tabela-reunioes-detalhe { width: 100%; border-collapse: collapse; }
+  .tabela-reunioes-detalhe th {
+    text-align: left; font-size: 0.625rem; color: var(--muted); font-weight: 600;
+    padding: 2px 6px; border-bottom: 1px solid var(--border);
+  }
+  .tabela-reunioes-detalhe td { font-size: 0.6875rem; padding: 2px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .tabela-reunioes-detalhe tr:last-child td { border-bottom: none; }
+  .resumo-contagem-sdr {
+    display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .contagem-sdr-item { font-size: 0.6875rem; color: var(--muted); }
+  .contagem-sdr-item b { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  footer { margin-top: 18px; text-align: center; color: var(--muted); font-size: 0.6875rem; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<canvas id="bg-particulas" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    {% set partes_nome = nome_painel.split(" ", 1) %}
+    <h1>
+      <span class="palavra-board">{{ partes_nome[0] }}</span>
+      {% if partes_nome | length > 1 %}
+        <span class="palavra-resto">
+          {%- for ch in partes_nome[1] -%}
+            {%- if ch == "5" -%}<span class="numero-5">5</span>&nbsp;{%- else -%}{{ ch }}{%- endif -%}
+          {%- endfor -%}
+        </span>
+      {% endif %}
+    </h1>
+    <div class="meta-info">
+      Atualizado em {{ gerado_em }} &middot; {{ hoje }}
+      {% if detalhe_reunioes_lista %}
+      &middot; <span class="link-detalhe-discreto" onclick="toggleDetalhe('detalhe-todos')">detalhamento</span>
+      &middot; <span class="link-detalhe-discreto" onclick="exportarReunioesCSV()">exportar CSV</span>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if detalhe_reunioes_lista %}
+  <table id="detalhe-todos" class="painel-detalhe-todos" style="display:none; width:100%;">
+    <tbody>
+      <tr>
+        <td>
+          <div class="resumo-contagem-sdr">
+            {% for a in detalhe_reunioes_lista %}
+              <span class="contagem-sdr-item"><b>{{ a.nome }}</b>: {{ a.qtd_reunioes_mes }}</span>
+            {% endfor %}
+          </div>
+          <table id="tabela-reunioes-detalhe" class="tabela-reunioes-detalhe">
+            <thead><tr><th>SDR</th><th>Data</th><th>Negócio</th><th>Dono do negócio</th></tr></thead>
+            <tbody>
+              {% for a in detalhe_reunioes_lista %}
+                {% for r in a.reunioes_mes %}
+                <tr><td>{{ a.nome }}</td><td>{{ r.data }}</td><td>{{ r.deal_titulo }}</td><td>{{ r.closer }}</td></tr>
+                {% endfor %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if avisos %}
+  <div class="avisos">
+    {% for a in avisos %}
+    <div class="aviso">⚠ {{ a }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% macro avatar(nome, tamanho_classe) %}
+  <div class="{{ tamanho_classe }}">
+    <span class="iniciais-fallback">{{ nome | iniciais }}</span>
+    <img class="foto" alt="" data-candidatos='{{ (nome | fotos) | tojson }}'>
+  </div>
+  {% endmacro %}
+  {% macro avatar_mini(nome) %}
+  <span class="avatar-mini">
+    <span class="iniciais-fallback">{{ nome | iniciais }}</span>
+    <img class="foto" alt="" data-candidatos='{{ (nome | fotos) | tojson }}'>
+  </span>
+  {% endmacro %}
+
+  <!-- 1) Destaque do dia: 1º Closer e 1º SDR a bater a Meta do dia (Closer
+       comparado com a receita COM MULTIPLICADOR, não bruta). -->
+  <div class="secao destaque-grid">
+    <div class="card destaque-card">
+      <div class="label"><span class="trofeu">🏆</span> 1º Closer a bater a Meta do dia</div>
+      {% if primeiro_closer_dia %}
+      <div class="destaque-pessoa">
+        {{ avatar(primeiro_closer_dia.nome, "avatar") }}
+        <div class="destaque-texto">
+          <div class="destaque-nome">{{ primeiro_closer_dia.nome }}</div>
+          <div class="destaque-stat">
+            <b>R$ {{ "{:,.0f}".format(primeiro_closer_dia.valor_no_momento).replace(",", ".") }}</b>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="destaque-vazio">-</div>
+      {% endif %}
+    </div>
+    <div class="card destaque-card">
+      <div class="label"><span class="trofeu">🏆</span> 1º SDR a bater a Meta do dia</div>
+      {% if primeiro_sdr_dia %}
+      <div class="destaque-pessoa">
+        {{ avatar(primeiro_sdr_dia.nome, "avatar") }}
+        <div class="destaque-texto">
+          <div class="destaque-nome">{{ primeiro_sdr_dia.nome }}</div>
+          <div class="destaque-stat">
+            <b>{{ primeiro_sdr_dia.quantidade_no_momento }}</b> reuniões
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="destaque-vazio">-</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 2) Destaque contínuo: os DOIS são ACUMULADO DO MÊS agora (pedido do
+       João 06/10) — só crescem; só trocam de dono se outra pessoa superar
+       o total acumulado. O selo dourado mostra há quantos dias está no
+       posto (só zera quando a liderança muda de pessoa).
+       OCULTADO NA VERCEL 26/10 (pedido do João) — esse card depende de um
+       arquivo local persistido em disco (destaque_continuo.json), que não
+       sobrevive no sistema de arquivos só-leitura da Vercel. app.py manda
+       mostrar_destaque_continuo=False quando VERCEL=1; local continua
+       mostrando normal. -->
+  {% if mostrar_destaque_continuo %}
+  <div class="secao">
+    <h2>Destaque contínuo</h2>
+    <div class="continuo-grid">
+      <div class="card continuo-card">
+        {% if destaque_continuo_closer %}
+        <div class="avatar-continuo-wrap">
+          {{ avatar(destaque_continuo_closer.nome, "avatar-continuo") }}
+          <span class="selo-dias">há {{ destaque_continuo_closer.dias }} dia{{ "s" if destaque_continuo_closer.dias != 1 else "" }}</span>
+        </div>
+        <div class="continuo-info">
+          <div class="label">Valor bruto acumulado no mês</div>
+          <div class="continuo-nome">{{ destaque_continuo_closer.nome }}</div>
+          <div class="continuo-stat">R$ {{ "{:,.0f}".format(destaque_continuo_closer.valor).replace(",", ".") }}</div>
+        </div>
+        {% else %}
+        <div class="continuo-vazio">Valor bruto acumulado no mês: -</div>
+        {% endif %}
+      </div>
+      <div class="card continuo-card">
+        {% if destaque_continuo_sdr %}
+        <div class="avatar-continuo-wrap">
+          {{ avatar(destaque_continuo_sdr.nome, "avatar-continuo") }}
+          <span class="selo-dias">há {{ destaque_continuo_sdr.dias }} dia{{ "s" if destaque_continuo_sdr.dias != 1 else "" }}</span>
+        </div>
+        <div class="continuo-info">
+          <div class="label">Mais reuniões validadas no mês</div>
+          <div class="continuo-nome">{{ destaque_continuo_sdr.nome }}</div>
+          <div class="continuo-stat">{{ destaque_continuo_sdr.valor }} reuniões</div>
+        </div>
+        {% else %}
+        <div class="continuo-vazio">Mais reuniões validadas no mês: -</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 3) Meta do time: só Sniper e Olympus -->
+  {% macro barra_squad(nome_squad, dado) %}
+  {% set destacado = dado and dado.atingimento is not none and dado.atingimento >= 75 %}
+  <div class="card squad-card">
+    <div class="squad-nome">{{ nome_squad }}</div>
+    <div class="squad-bar-wrap">
+    {% if dado and dado.atingimento is not none %}
+    <div class="squad-barra"><div class="squad-barra-fill{{ ' destaque' if destacado else '' }}" style="width: {{ [dado.atingimento, 100] | min }}%;"></div></div>
+    <div class="squad-pct"><b>{{ "%.1f"|format(dado.atingimento)|replace(".", ",") }}%</b> do mês</div>
+    {% if dado.financeiro_pct is defined and dado.financeiro_pct is not none %}
+    <div class="squad-pct-detalhe oculto">
+      Financeiro <b>{{ "%.1f"|format(dado.financeiro_pct)|replace(".", ",") }}%</b>
+      &middot; Reuniões <b>{{ "%.1f"|format(dado.reunioes_pct)|replace(".", ",") }}%</b>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="squad-barra"></div>
+    <div class="squad-pct">sem meta</div>
+    {% endif %}
+    </div>
+  </div>
+  {% endmacro %}
+  <div class="secao">
+    <h2>Meta do time</h2>
+    <div class="squads-grid">
+      {{ barra_squad("Olympus", squads.OLYMPUS) }}
+      {{ barra_squad("Sniper", squads.SNIPER) }}
+    </div>
+  </div>
+
+  <!-- Destrinche do % Final do Sniper (pedido do João, 23/10: "preciso que
+       destrinche pra mim esses valores") — mostra reuniões e financeiro
+       separados, com realizado/meta de cada um, e a fórmula de combinação.
+       Só o Sniper tem essa conta dividida (Olympus é atingimento simples).
+       OCULTADO 23/10 (pedido do João: "deixe esses dados ocultos") — classe
+       "oculto" só esconde (display:none), não apaga o bloco nem o cálculo;
+       é só tirar a classe pra voltar a mostrar. -->
+  {% if squads.SNIPER and squads.SNIPER.atingimento is not none %}
+  <div class="secao oculto">
+    <h2>Como chegamos no % Final do Sniper</h2>
+    <div class="destrinche-grid">
+      <div class="destrinche-card">
+        <div class="destrinche-rotulo">Reuniões <span class="destrinche-peso">(peso 70%)</span></div>
+        <div class="destrinche-conta">
+          {{ squads.SNIPER.realizado }} validadas ÷ {{ "{:,.0f}".format(squads.SNIPER.meta or 0).replace(",", ".") }} meta
+        </div>
+        <div class="destrinche-pct">{{ "%.1f"|format(squads.SNIPER.reunioes_pct)|replace(".", ",") if squads.SNIPER.reunioes_pct is not none else "—" }}%</div>
+      </div>
+      <div class="destrinche-card">
+        <div class="destrinche-rotulo">Financeiro <span class="destrinche-peso">(peso 30%)</span></div>
+        <div class="destrinche-conta">
+          R$ {{ "{:,.0f}".format(squads.SNIPER.financeiro_realizado or 0).replace(",", ".") }}
+          ÷ R$ {{ "{:,.0f}".format(squads.SNIPER.financeiro_meta or 0).replace(",", ".") }} meta
+        </div>
+        <div class="destrinche-pct">{{ "%.1f"|format(squads.SNIPER.financeiro_pct)|replace(".", ",") if squads.SNIPER.financeiro_pct is not none else "—" }}%</div>
+      </div>
+      <div class="destrinche-card destrinche-final">
+        <div class="destrinche-rotulo">% Final</div>
+        <div class="destrinche-conta">
+          Reuniões × 70% + Financeiro × 30%
+        </div>
+        <div class="destrinche-pct">{{ "%.1f"|format(squads.SNIPER.atingimento)|replace(".", ",") }}%</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 4) Detalhamento do dia: SDR com quadradinhos (Validadas/Agendadas) e
+       Closer Olympus com meta/vendido do dia em multiplicador. -->
+  {% macro bloco_progresso(label, feitas, alvo, bateu) %}
+  <span>
+    <span class="rotulo">{{ label }} &middot; {{ feitas }}/{{ alvo }}</span>
+    {% if bateu %}
+    <span class="quadrado-check-grande" title="Meta batida">✓</span>
+    {% elif (alvo | int) > 16 %}
+    <span class="rotulo">⏳ em andamento</span>
+    {% else %}
+    {% set n = (alvo | int) if (alvo | int) > 0 else 1 %}
+    <span class="quadradinhos">
+      {% for i in range(n) %}
+      <span class="quadradinho{{ ' preenchido' if i < feitas else '' }}"></span>
+      {% endfor %}
+    </span>
+    {% endif %}
+  </span>
+  {% endmacro %}
+  <div class="secao detalhe-grid">
+    <div class="card">
+      <h2>Detalhamento do dia &middot; Closer</h2>
+      {% if closers_olympus %}
+      <table class="tabela-detalhe">
+        <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
+        <tbody>
+          {% for c in closers_olympus %}
+          <tr>
+            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
+            <td>
+              <span class="rotulo">Meta do dia</span>
+              <span class="valor-rs">R$ {{ "{:,.0f}".format(c.alvo_diario).replace(",", ".") }}</span>
+            </td>
+            <td>
+              <span class="rotulo">Vendido hoje</span>
+              <span class="valor-rs{{ ' bateu' if c.bateu else '' }}">R$ {{ "{:,.0f}".format(c.vendido_hoje).replace(",", ".") }}</span>
+              {% if c.a_vista_hoje %}<span class="selo-a-vista">💰 {{ c.a_vista_hoje }} à vista</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Nenhum Closer do squad Olympus encontrado (confira a coluna SUBAREA na aba Colaboradores).</div>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>Detalhamento do dia &middot; SDR</h2>
+      {% if alvo_do_dia_sdr %}
+      <table class="tabela-detalhe">
+        <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
+        <tbody>
+          {% for a in alvo_do_dia_sdr %}
+          <tr class="{{ 'linha--bateu' if a.bateu else '' }}">
+            <td>
+              <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span></span>
+            </td>
+            <td>{{ bloco_progresso("Validadas", a.feitas_hoje, a.alvo_diario, a.bateu) }}</td>
+            <td>{{ bloco_progresso("Agendadas", a.agendamentos_hoje, a.alvo_diario, a.bateu_agendamento) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Sem metas individuais encontradas na aba "Metas" pra este mês.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <footer>{{ nome_painel }} &middot; Board Academy</footer>
+</div>
+<script>
+  // Botão "Detalhes" (lista de reuniões validadas no mês, por SDR) — só
+  // mostra/esconde a linha da tabela; não depende de nada mais. Depois de
+  // abrir/fechar, reaproveita o auto-ajuste de zoom (ver script abaixo)
+  // pra continuar garantindo que não precisa rolar, já que abrir o painel
+  // aumenta a altura da página.
+  function toggleDetalhe(id) {
+    var linha = document.getElementById(id);
+    if (!linha) return;
+    linha.style.display = (linha.style.display === "none") ? "" : "none";
+    if (window.__board5anosAjustarZoom) window.__board5anosAjustarZoom();
+  }
+
+  // Exportar CSV (pedido do João, 23/10) — monta o CSV direto a partir da
+  // tabela de detalhamento já renderizada na página (sem GET extra ao
+  // servidor), incluindo uma primeira linha de resumo "SDR,Total" por
+  // pessoa antes da lista reunião a reunião. Abre o Excel certinho em
+  // PT-BR porque usa ; como separador (vírgula já é usada no valor
+  // decimal/nome em PT-BR) e BOM UTF-8 (senão acento quebra no Excel).
+  function exportarReunioesCSV() {
+    var tabela = document.getElementById("tabela-reunioes-detalhe");
+    if (!tabela) return;
+
+    var linhas = [];
+    linhas.push(["SDR", "Total de reuniões"].join(";"));
+    document.querySelectorAll(".contagem-sdr-item").forEach(function (span) {
+      var nome = span.querySelector("b").textContent;
+      var total = span.textContent.split(":").pop().trim();
+      linhas.push([nome, total].map(csvCampo).join(";"));
+    });
+    linhas.push("");
+    linhas.push(["SDR", "Data", "Negócio", "Dono do negócio"].join(";"));
+    tabela.querySelectorAll("tbody tr").forEach(function (tr) {
+      var celulas = Array.prototype.map.call(tr.querySelectorAll("td"), function (td) {
+        return csvCampo(td.textContent.trim());
+      });
+      linhas.push(celulas.join(";"));
+    });
+
+    function csvCampo(v) {
+      v = String(v == null ? "" : v);
+      return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }
+
+    var bom = "﻿";
+    var blob = new Blob([bom + linhas.join("\n")], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var hoje = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = "reunioes_validadas_" + hoje + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+<script>
+  // RESPONSIVO (07/10, pedido do João: "consegue deixar ele responsivo
+  // dependendo da tela e computador?") — depois de rodadas tentando
+  // acertar um font-size fixo manualmente pra TV do João (cada tela real
+  // (resolução x escala do Windows x tela cheia ou não) deu um resultado
+  // diferente do simulado), a solução de verdade é medir o espaço que
+  // SOBROU de verdade em cada computador e ajustar sozinho, em vez de
+  // cravar um valor só. Busca binária: testa tamanhos de letra entre
+  // FONT_MIN e FONT_MAX e fica com o MAIOR que ainda cabe sem rolar
+  // (document.body.scrollHeight <= window.innerHeight) na tela de quem
+  // estiver vendo — funciona em qualquer resolução/escala/tela cheia,
+  // sem precisar calibrar na mão de novo a cada TV/PC diferente.
+  (function () {
+    var FONT_MIN = 9;
+    var FONT_MAX = 28;
+    var html = document.documentElement;
+
+    function cabeSemRolar() {
+      return document.body.scrollHeight <= window.innerHeight;
+    }
+
+    function ajustarZoomParaCaber() {
+      html.style.fontSize = FONT_MAX + "px";
+      if (cabeSemRolar()) return; // tela grande/alta o bastante pro tamanho máximo
+
+      html.style.fontSize = FONT_MIN + "px";
+      if (!cabeSemRolar()) return; // nem no tamanho mínimo coube — fica no mínimo mesmo assim
+
+      var baixo = FONT_MIN, alto = FONT_MAX, tentativas = 0;
+      while (alto - baixo > 0.5 && tentativas < 12) {
+        var meio = (baixo + alto) / 2;
+        html.style.fontSize = meio + "px";
+        if (cabeSemRolar()) {
+          baixo = meio;
+        } else {
+          alto = meio;
+        }
+        tentativas++;
+      }
+      html.style.fontSize = baixo + "px";
+    }
+
+    window.__board5anosAjustarZoom = ajustarZoomParaCaber;
+    ajustarZoomParaCaber();
+
+    var resizeTimeout;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(ajustarZoomParaCaber, 200);
+    });
+  })();
+</script>
+<script>
+  // Auto-atualização a cada 15 min (CORRIGIDO 07/10, pedido do João: "tá
+  // travando um pouco na TV"). Antes isso trocava o conteúdo com
+  // document.open()/write()/close() pra não "piscar a tela" — só que isso
+  // NÃO encerra o loop de animação do fundo (canvas de partículas, rodando
+  // a ~60fps) nem os listeners de resize/visibilidade da versão anterior:
+  // o window continua o mesmo por baixo do document.write, então cada
+  // ciclo de atualização criava um loop de animação NOVO por cima dos
+  // antigos, sem nunca cancelar os velhos. Numa TV ligada o dia inteiro,
+  // isso ia acumulando dezenas de loops "fantasmas" desenhando em canvas
+  // invisíveis — é esse acúmulo, bem mais que o servidor Flask em si, que
+  // ia deixando a máquina lenta ao longo do dia. location.reload() é uma
+  // recarga de página de verdade: destrói e recria o JS inteiro a cada
+  // ciclo, sem deixar nada pra trás (custa um pisca rápido de tela a cada
+  // 15 min, que numa TV sem ninguém mexendo não é perceptível).
+  //
+  // CORRIGIDO 07/10 (2ª rodada, pedido do João: "a cada atualização volta
+  // pra tela de Carregando...") — a tela de carregamento inicial troca o
+  // conteúdo com document.write, que NÃO atualiza a URL na barra de
+  // endereço: ela fica parada em "/", sem o "?_carregado=1". Um
+  // location.reload() simples recarregava essa URL crua de novo, caindo
+  // de novo na tela de carregamento a cada 15 min. Agora montamos a URL
+  // certa (com _carregado=1, e preservando month/tv se existirem) e
+  // navegamos pra ela — assim o reload sempre cai direto no dashboard.
+  setInterval(function () {
+    var url = new URL(window.location.href);
+    url.searchParams.set("_carregado", "1");
+    window.location.href = url.toString();
+  }, 15 * 60 * 1000);
+</script>
+<script>
+  // Foto (mesmo mecanismo do ARENA): tenta cada URL candidata até achar
+  // uma que exista; se nenhuma existir, fica invisível e as iniciais
+  // continuam aparecendo por baixo.
+  (function () {
+    function tentarProximaFoto(img) {
+      var candidatos;
+      try {
+        candidatos = JSON.parse(img.getAttribute("data-candidatos") || "[]");
+      } catch (e) {
+        candidatos = [];
+      }
+      if (!candidatos.length) return;
+      var proxima = candidatos.shift();
+      img.setAttribute("data-candidatos", JSON.stringify(candidatos));
+      img.src = proxima;
+    }
+    document.querySelectorAll(".foto[data-candidatos]").forEach(function (img) {
+      img.addEventListener("error", function () { tentarProximaFoto(img); });
+      img.addEventListener("load", function () {
+        img.classList.add("carregada");
+        if (img.parentElement) img.parentElement.classList.add("tem-foto");
+      });
+      tentarProximaFoto(img);
+    });
+  })();
+</script>
+<script>
+  // Fundo animado "poeira dourada" (mesmo mecanismo do ARENA, cores
+  // ajustadas pro preto puro) — canvas 2D puro, sem imagem/vídeo externo.
+  (function () {
+    var canvas = document.getElementById("bg-particulas");
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext("2d");
+    var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    var largura, altura, dpr;
+    function redimensionar() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      largura = window.innerWidth;
+      altura = window.innerHeight;
+      canvas.width = largura * dpr;
+      canvas.height = altura * dpr;
+      canvas.style.width = largura + "px";
+      canvas.style.height = altura + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Reduzido de 70 (pedido do João, 07/10: "travando um pouco na TV") —
+    // menos partículas pra desenhar em todo frame.
+    var N_PARTICULAS = 40;
+    function novaParticula(y) {
+      return {
+        x: Math.random() * largura,
+        y: y === undefined ? Math.random() * altura : y,
+        r: 0.6 + Math.random() * 2.1,
+        vy: 0.06 + Math.random() * 0.16,
+        fase: Math.random() * Math.PI * 2,
+        velFase: 0.008 + Math.random() * 0.018,
+        amplitude: 6 + Math.random() * 18,
+        brilhoBase: 0.25 + Math.random() * 0.55,
+      };
+    }
+    var particulas = [];
+    function recriarParticulas() {
+      particulas = [];
+      for (var i = 0; i < N_PARTICULAS; i++) particulas.push(novaParticula());
+    }
+
+    var t = 0;
+
+    // CORRIGIDO 07/10 — o gradiente radial do brilho de fundo era recriado
+    // (createRadialGradient, uma operação cara) em TODO frame, só pra uma
+    // pulsação lenta (~10s por ciclo). Agora só recalcula a cada 10
+    // frames (6x menos vezes) e reaproveita o último gradiente nos frames
+    // entre um recálculo e outro — a pulsação continua suave de olho nu.
+    var gradCache = null;
+    var gradCacheFrame = -999;
+    var FRAME_SKIP_GRADIENTE = 10;
+    function desenharFundo(numFrame) {
+      ctx.clearRect(0, 0, largura, altura);
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, largura, altura);
+
+      if (!gradCache || numFrame - gradCacheFrame >= FRAME_SKIP_GRADIENTE) {
+        var pulso = reduzMovimento ? 0.5 : (Math.sin(t * 0.0006) + 1) / 2;
+        var glowX = largura * 0.22;
+        var glowY = altura * (0.92 - pulso * 0.04);
+        var glowR = Math.max(largura, altura) * (0.55 + pulso * 0.08);
+        gradCache = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, glowR);
+        gradCache.addColorStop(0, "rgba(212,175,55," + (0.20 + pulso * 0.06) + ")");
+        gradCache.addColorStop(0.4, "rgba(150,110,20,0.09)");
+        gradCache.addColorStop(1, "rgba(0,0,0,0)");
+        gradCacheFrame = numFrame;
+      }
+      ctx.fillStyle = gradCache;
+      ctx.fillRect(0, 0, largura, altura);
+    }
+
+    // CORRIGIDO 07/10 (pedido do João: "travando um pouco na TV") — cada
+    // partícula usava ctx.shadowBlur (desenho com blur de verdade, bem
+    // pesado em CPU/GPU integrada) pra fazer o brilho. Trocado por um
+    // círculo levemente maior com opacidade mais baixa por fora — bem
+    // mais barato de desenhar, mantendo o efeito de "poeira dourada".
+    function desenharParticulas() {
+      for (var i = 0; i < particulas.length; i++) {
+        var p = particulas[i];
+        var brilho = p.brilhoBase * (reduzMovimento ? 1 : (0.5 + 0.5 * Math.sin(p.fase)));
+        var x = p.x + (reduzMovimento ? 0 : Math.sin(p.fase * 0.5) * p.amplitude * 0.15);
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(212,175,55," + (brilho * 0.35).toFixed(3) + ")";
+        ctx.arc(x, p.y, p.r * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(212,175,55," + brilho.toFixed(3) + ")";
+        ctx.arc(x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function atualizarParticulas() {
+      for (var i = 0; i < particulas.length; i++) {
+        var p = particulas[i];
+        p.y -= p.vy;
+        p.fase += p.velFase;
+        if (p.y < -10) {
+          particulas[i] = novaParticula(altura + 10);
+        }
+      }
+    }
+
+    // CORRIGIDO 07/10 — rodava a cada requestAnimationFrame (até 60fps)
+    // sem necessidade nenhuma, pra um movimento tão lento/sutil. Agora
+    // limita a desenhar no máximo ~30x por segundo (pula um frame de
+    // cada dois) — metade do trabalho de desenho, sem diferença visível.
+    var animando = false;
+    var numFrame = 0;
+    var ultimoDesenho = 0;
+    function frame(agora) {
+      if (animando && !reduzMovimento) requestAnimationFrame(frame);
+      agora = agora || 0;
+      if (agora - ultimoDesenho < 32) return;
+      ultimoDesenho = agora;
+      numFrame++;
+      t += 32;
+      desenharFundo(numFrame);
+      desenharParticulas();
+      if (!reduzMovimento) atualizarParticulas();
+    }
+
+    function iniciar() {
+      redimensionar();
+      recriarParticulas();
+      gradCache = null;
+      desenharFundo(0);
+      desenharParticulas();
+      if (reduzMovimento) return;
+      if (!animando) {
+        animando = true;
+        requestAnimationFrame(frame);
+      }
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        animando = false;
+      } else if (!reduzMovimento && !animando) {
+        animando = true;
+        requestAnimationFrame(frame);
+      }
+    });
+
+    var resizeTimeout;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(iniciar, 150);
+    });
+
+    iniciar();
+  })();
+</script>
+</body>
+</html>

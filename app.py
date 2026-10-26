@@ -16,14 +16,14 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
     pedido do João, 06/10 (tinha saído na 1ª versão enxuta).
   - Meta do time — só Sniper e Olympus (Elite tirado a pedido do João, 05/10).
   - Destaque contínuo (Closer e SDR) — card que fica com a mesma pessoa até
-    alguém bater o número ACUMULADO DO DIA dela (reuniões validadas pro SDR;
-    venda BRUTA acumulada no dia, sem multiplicador, pro Closer — critério
+    alguém bater o número ACUMULADO DO MÊS dela (reuniões validadas pro SDR;
+    venda BRUTA acumulada no mês, sem multiplicador, pro Closer — critério
     diferente do multiplicador usado na meta diária acima, de propósito:
-    pedido do João, 06/10). O próprio dono também pode superar o próprio
-    recorde num dia melhor. Mostra foto + selo de "há X dias". Esse estado é
-    persistido em disco (ver _STORE_PATH) porque precisa sobreviver de um
-    dia pro outro — diferente do cache em memória, que só vale enquanto o
-    servidor está de pé.
+    pedido do João, 06/10). Mostra foto + selo de "há X dias". REESCRITO
+    26/10 pra ser SEM ESTADO (ver _destaque_continuo_sem_estado): a
+    liderança é recalculada do zero a cada request, simulando dia a dia os
+    números já computados — não depende mais de arquivo em disco, então
+    funciona igual local e na Vercel.
 
 Rodar local:
     pip install -r requirements.txt
@@ -241,112 +241,95 @@ CACHE_TTL_SEGUNDOS = 15 * 60
 
 # ---------------------------------------------------------------------------
 # Destaque CONTÍNUO (pedido do João, 05/10) — card que só troca de pessoa
-# quando o número dela NUM DIA supera o recorde guardado aqui. Precisa
-# sobreviver a reinícios do servidor e virada de dia, por isso vai pro
-# disco (não dá pra guardar só em memória como o _CACHE acima).
+# quando o número dela supera o recorde atual.
 #
-# OCULTADO NA VERCEL 26/10 (pedido do João) — o disco lá é só leitura em
-# produção (fora /tmp, que é temporário e não sobrevive entre execuções),
-# então persistir nesse arquivo não funciona. Em vez de deixar quebrar ou
-# resetar toda hora, _NA_VERCEL desliga esse card inteiro só na Vercel —
-# local continua normal, lendo/escrevendo o destaque_continuo.json de
-# sempre.
-_NA_VERCEL = bool(os.environ.get("VERCEL"))
-_STORE_PATH = os.path.join(_BASE_DIR, "destaque_continuo.json")
-
-
-def _carregar_store_continuo():
-    if _NA_VERCEL:
-        return {}
-    try:
-        with open(_STORE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-
-def _salvar_store_continuo(store):
-    if _NA_VERCEL:
-        return
-    # escreve em arquivo temporário e troca no final — evita corromper o
-    # arquivo se o processo for interrompido no meio da escrita (mesmo
-    # padrão já usado no ARENA pra outros stores).
-    tmp_path = _STORE_PATH + ".tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(store, f, ensure_ascii=False, indent=2, sort_keys=True)
-    os.replace(tmp_path, _STORE_PATH)
-
-
-def _atualizar_destaque_continuo(chave, candidatos_hoje, hoje, resetar_em_autosuperacao=True):
-    """candidatos_hoje: dict nome -> valor ATUAL (int ou float). chave:
-    'sdr' ou 'closer', pra guardar registros separados no mesmo arquivo.
-
-    Regra (confirmada com o João): a cada recálculo olha quem tem o MAIOR
-    valor agora; se esse valor for MAIOR (estritamente) que o recorde
-    guardado, essa pessoa assume o posto e o valor do recorde vira o dela.
-    Se ninguém bater o recorde (ou não há candidato), o dono atual continua
-    — os "dias no destaque" aumentam naturalmente porque `desde` não muda.
-
-    resetar_em_autosuperacao: controla o que acontece quando quem bate o
-    recorde é a MESMA pessoa que já estava no posto.
-    - True (padrão, usado pro SDR — métrica DIÁRIA que reseta no dia
-      seguinte): um novo valor maior reseta `desde` mesmo sendo a mesma
-      pessoa, porque é um novo "melhor dia" dela.
-    - False (usado pro Closer, pedido do João 06/10 — virou venda bruta
-      ACUMULADA NO MÊS, que só cresce ao longo do mês): toda venda nova da
-      própria líder bate o próprio número trivialmente, então isso NÃO
-      reseta `desde` — só atualiza o valor. `desde` só reseta quando a
-      LIDERANÇA MUDA DE PESSOA.
-
-    Retorna o dict pronto pro template: {"nome", "valor", "dias"} ou None se
-    ainda não há nenhum recorde (ninguém pontuou nunca)."""
-    store = _carregar_store_continuo()
-    registro = store.get(chave)
-
-    # CORRIGIDO 23/10 — achado ao vivo: Raphaela Moutinho (SDR_EXCLUIDOS)
-    # tinha virado o recorde guardado (110) ANTES do total do Sniper voltar
-    # a excluí-la; depois da correção ela some de candidatos_hoje (valor
-    # zerado pra ela), mas a regra "só troca quando alguém SUPERA o
-    # recorde" prendia ela lá pra sempre — ninguém nunca bate um número que
-    # não devia ter existido. Se o dono do recorde guardado não é mais nem
-    # CANDIDATO (saiu da população válida — excluído, mudou de time etc.),
-    # descarta o recorde velho e recomeça do zero a partir de quem é válido
-    # agora, mesmo que o valor novo seja menor.
-    if registro is not None and registro.get("nome") not in candidatos_hoje:
-        registro = None
-
-    maior_hoje = None
-    if candidatos_hoje:
-        nome_top = max(candidatos_hoje, key=lambda n: candidatos_hoje[n])
-        valor_top = candidatos_hoje[nome_top]
-        if valor_top and valor_top > 0:
-            maior_hoje = (nome_top, valor_top)
-
-    mudou = False
-    if registro is None:
-        if maior_hoje is not None:
-            nome_top, valor_top = maior_hoje
-            registro = {"nome": nome_top, "valor": valor_top, "desde": hoje.isoformat()}
-            mudou = True
-    else:
-        if maior_hoje is not None and maior_hoje[1] > registro["valor"]:
-            nome_top, valor_top = maior_hoje
-            mesma_pessoa = nome_top == registro["nome"]
-            reseta_desde = resetar_em_autosuperacao or not mesma_pessoa
-            desde = hoje.isoformat() if reseta_desde else registro["desde"]
-            registro = {"nome": nome_top, "valor": valor_top, "desde": desde}
-            mudou = True
-
-    if registro is None:
+# REESCRITO 26/10 (pedido do João, depois de notar que o card tinha sumido
+# na Vercel) — a versão original guardava a liderança num arquivo em disco
+# (destaque_continuo.json), que precisava sobreviver de uma execução pra
+# outra. Isso quebra na Vercel (sistema de arquivos só leitura em
+# produção, fora /tmp, que nem sobrevive entre execuções). Em vez de
+# resolver com um banco externo, dava pra perceber que a liderança do mês
+# inteiro é só uma FUNÇÃO dos números que a gente já calcula (eventos_
+# validados_mes pro SDR, deals_won pro Closer) — não precisa de memória
+# nenhuma: a cada request, _destaque_continuo_sem_estado reconstrói o
+# "filme" dia a dia (acumulado até cada dia do mês) e simula a MESMA regra
+# de antes (record só muda quando alguém supera estritamente o valor de
+# quem está no posto; "há X dias" só reseta quando a liderança muda de
+# pessoa) — zero chamada extra ao Pipedrive, funciona igual local e na
+# Vercel, e resolve de graça o bug antigo do recorde "preso" em alguém que
+# saiu da população válida (ele nunca nem entra na simulação).
+def _destaque_continuo_sem_estado(serie_diaria, fim):
+    """serie_diaria: lista de (dia, {nome: valor ACUMULADO até esse dia}),
+    em ordem crescente de dia, cobrindo do início do mês até `fim`
+    (inclusive). Retorna {"nome", "valor", "dias"} pronto pro template, ou
+    None se ninguém pontuou ainda no mês."""
+    nome_atual = valor_atual = desde = None
+    for dia, candidatos in serie_diaria:
+        if not candidatos:
+            continue
+        nome_top, valor_top = max(candidatos.items(), key=lambda kv: kv[1])
+        if not valor_top or valor_top <= 0:
+            continue
+        if valor_atual is None or valor_top > valor_atual:
+            if nome_top != nome_atual:
+                desde = dia
+            nome_atual, valor_atual = nome_top, valor_top
+    if nome_atual is None:
         return None
+    dias = (fim - desde).days + 1
+    return {"nome": nome_atual, "valor": valor_atual, "dias": max(dias, 1)}
 
-    if mudou:
-        store[chave] = registro
-        _salvar_store_continuo(store)
 
-    desde = date.fromisoformat(registro["desde"])
-    dias = (hoje - desde).days + 1
-    return {"nome": registro["nome"], "valor": registro["valor"], "dias": max(dias, 1)}
+def _dias_do_mes_ate(inicio, fim):
+    if fim < inicio:
+        return []
+    return [inicio + timedelta(days=i) for i in range((fim - inicio).days + 1)]
+
+
+def _serie_diaria_validadas_sdr(eventos_validados_mes, nomes_sniper_norm, lideres_sniper_norm, inicio, fim):
+    """Reuniões validadas ACUMULADAS até cada dia, por SDR — mesma
+    população do Sniper (sem líderes, sem SDR_EXCLUIDOS) já usada em
+    validadas_mes_por_sdr acima. Fonte: eventos_validados_mes, já
+    calculado pela M6 oficial — nenhuma regra nova aqui, só acumulação."""
+    acumulado = defaultdict(int)
+    serie = []
+    for dia in _dias_do_mes_ate(inicio, fim):
+        for ev in eventos_validados_mes.get(dia, []):
+            if not ev["sdr"]:
+                continue
+            sdr_norm = crn_texto.norm(ev["sdr"])
+            if sdr_norm in lideres_sniper_norm or sdr_norm not in nomes_sniper_norm:
+                continue
+            acumulado[ev["sdr"]] += 1
+        serie.append((dia, dict(acumulado)))
+    return serie
+
+
+def _serie_diaria_vendas_brutas_closer(deals_won_mes, usuarios, membros_olympus_norm, inicio, fim):
+    """Venda bruta ACUMULADA até cada dia, por Closer — mesma
+    elegibilidade (Colab squad OLYMPUS) de _vendas_brutas_mes_por_closer
+    acima, só que repartida por dia do won_time (Brasília) em vez de um
+    total único do mês."""
+    por_dia = defaultdict(lambda: defaultdict(float))
+    for deal in deals_won_mes:
+        if not (deal.get("value") or 0) > 0:
+            continue
+        nome = usuarios.get(crn_texto.dono_id(deal))
+        if not nome or crn_texto.norm(nome) not in membros_olympus_norm:
+            continue
+        if not config.deve_pontuar_como_closer(nome):
+            continue
+        dia = crn_fuso.data_brasil(deal.get("won_time"))
+        if dia is None:
+            continue
+        por_dia[dia][nome] += deal.get("value") or 0
+    acumulado = defaultdict(float)
+    serie = []
+    for dia in _dias_do_mes_ate(inicio, fim):
+        for nome, v in por_dia.get(dia, {}).items():
+            acumulado[nome] += v
+        serie.append((dia, dict(acumulado)))
+    return serie
 
 
 def _valor_multiplicador(deal):
@@ -1082,16 +1065,21 @@ def _calcular_dados(month_str):
                 continue
             validadas_mes_por_sdr[ev["sdr"]] += 1
     vendido_bruto_mes_por_closer = _vendas_brutas_mes_por_closer(deals_won, usuarios, membros_olympus_norm)
-    if _NA_VERCEL:
-        destaque_continuo_sdr = None
-        destaque_continuo_closer = None
-    else:
-        destaque_continuo_sdr = _atualizar_destaque_continuo(
-            "sdr", dict(validadas_mes_por_sdr), hoje, resetar_em_autosuperacao=False
-        )
-        destaque_continuo_closer = _atualizar_destaque_continuo(
-            "closer", vendido_bruto_mes_por_closer, hoje, resetar_em_autosuperacao=False
-        )
+    # SEM ESTADO (ver nota 26/10 acima da função) — funciona igual local e
+    # na Vercel, nenhuma leitura/escrita em disco.
+    _fim_destaque_continuo = min(hoje, month_end)
+    destaque_continuo_sdr = _destaque_continuo_sem_estado(
+        _serie_diaria_validadas_sdr(
+            eventos_validados_mes, nomes_sniper_norm, lideres_sniper_norm, month_start, _fim_destaque_continuo
+        ),
+        _fim_destaque_continuo,
+    )
+    destaque_continuo_closer = _destaque_continuo_sem_estado(
+        _serie_diaria_vendas_brutas_closer(
+            deals_won, usuarios, membros_olympus_norm, month_start, _fim_destaque_continuo
+        ),
+        _fim_destaque_continuo,
+    )
 
     return {
         "nome_painel": NOME_PAINEL,
@@ -1105,7 +1093,7 @@ def _calcular_dados(month_str):
         "closers_olympus": closers_olympus,
         "destaque_continuo_sdr": destaque_continuo_sdr,
         "destaque_continuo_closer": destaque_continuo_closer,
-        "mostrar_destaque_continuo": not _NA_VERCEL,
+        "mostrar_destaque_continuo": True,
         "hoje": hoje.strftime("%d/%m/%Y"),
         "avisos": avisos,
         # Carimbo de parâmetros com a versão da CRN (regra 4 da migração)

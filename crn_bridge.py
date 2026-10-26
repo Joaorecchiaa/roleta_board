@@ -38,17 +38,21 @@ from crn.base import fontes, pipedrive, texto
 from crn.base.config import campo, filtro
 from crn.regras import h1_hierarquia, r2_papel
 
-# Não existe crn.versao() (só crn.__version__, v0.1.0 na instalação local
-# usada nesta migração) — "Faltou na CRN" (ver lista de divergências
-# entregue ao João). Usamos __version__ como carimbo.
-VERSAO_CRN = getattr(crn, "__version__", "desconhecida")
+# Não existe crn.versao() oficial na biblioteca — "Faltou na CRN" (ver lista
+# de divergências entregue ao João). Mas o cabeçalho de auto-update deste
+# painel (início do app.py) seta `crn.versao` na própria instância em
+# memória assim que baixa/atualiza a lib: no Vercel é o commit curto do
+# GitHub (ex.: "319846e"), local é o que `crn.__version__` disser. Por isso
+# checamos `.versao()` primeiro (pega o commit real usado NESTE carregamento)
+# e só caímos pro `__version__` estático se não tiver sido setado.
+VERSAO_CRN = crn.versao() if hasattr(crn, "versao") else getattr(crn, "__version__", "desconhecida")
 
 
 def carimbo_parametros(month_str, extras=None):
     """Texto curto pro rodapé do painel: mês calculado + versão da CRN
     usada neste cálculo (pedido explícito do João, regra 4 da migração).
     `extras` é um dict opcional {rótulo: valor} pra acrescentar depois."""
-    partes = [f"CRN v{VERSAO_CRN}", f"regras calculadas para {month_str}"]
+    partes = [f"CRN {VERSAO_CRN}", f"regras calculadas para {month_str}"]
     if extras:
         partes += [f"{k}: {v}" for k, v in extras.items()]
     return " · ".join(partes)

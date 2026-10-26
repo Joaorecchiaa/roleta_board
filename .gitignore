@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+destaque_continuo.json
+.vercel

@@ -403,11 +403,9 @@
        João 06/10) — só crescem; só trocam de dono se outra pessoa superar
        o total acumulado. O selo dourado mostra há quantos dias está no
        posto (só zera quando a liderança muda de pessoa).
-       OCULTADO NA VERCEL 26/10 (pedido do João) — esse card depende de um
-       arquivo local persistido em disco (destaque_continuo.json), que não
-       sobrevive no sistema de arquivos só-leitura da Vercel. app.py manda
-       mostrar_destaque_continuo=False quando VERCEL=1; local continua
-       mostrando normal. -->
+       REESCRITO 26/10: app.py não depende mais de arquivo em disco pra
+       isso (recalcula sem estado a cada request) — funciona igual local e
+       na Vercel, mostrar_destaque_continuo sempre True. -->
   {% if mostrar_destaque_continuo %}
   <div class="secao">
     <h2>Destaque contínuo</h2>

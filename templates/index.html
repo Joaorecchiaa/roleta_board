@@ -272,6 +272,7 @@
     text-decoration: underline dotted; text-underline-offset: 2px;
   }
   .link-detalhe-discreto:hover { opacity: 0.9; color: var(--gold); }
+  .versao-crn-discreta { font-size: 0.625rem; color: var(--muted); opacity: 0.55; }
   .painel-detalhe-todos { margin-top: 6px; }
   .painel-detalhe-todos td { padding: 6px 5px 8px 5px; background: rgba(255,255,255,0.03); }
   .tabela-reunioes-detalhe { width: 100%; border-collapse: collapse; }
@@ -307,9 +308,9 @@
       {% endif %}
     </h1>
     <div class="meta-info">
-      Atualizado em {{ gerado_em }} &middot; {{ hoje }}
+      Atualizado em {{ gerado_em }}
       {% if versao_crn %}
-      &middot; CRN {{ versao_crn }}
+      &middot; <span class="versao-crn-discreta">CRN {{ versao_crn }}</span>
       {% endif %}
       {% if detalhe_reunioes_lista %}
       &middot; <span class="link-detalhe-discreto" onclick="toggleDetalhe('detalhe-todos')">detalhamento</span>

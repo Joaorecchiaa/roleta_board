@@ -14,10 +14,9 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
     Agendadas — igual o ARENA) — reintroduzido a pedido do João, 06/10
     (tinha saído na 1ª versão enxuta).
   - Termômetro de vendas Olympus (valor com multiplicador) — SUBSTITUIU o
-    "Detalhamento do dia · Closer" a pedido do João, 26/10. Meta e período
-    mudam ao longo da semana e reiniciam do zero a cada período novo (ver
-    _periodo_termometro_olympus): domingo a quarta R$150K, quinta e sexta
-    R$200K, sábado R$100K.
+    "Detalhamento do dia · Closer" a pedido do João, 26/10. Meta DIÁRIA, que
+    reseta todo dia (ver _periodo_termometro_olympus): R$150K na maioria dos
+    dias, R$200K na quinta, R$100K no sábado.
   - Meta do time — só Sniper e Olympus (Elite tirado a pedido do João, 05/10).
   - Destaque contínuo (Closer e SDR) — card que fica com a mesma pessoa até
     alguém bater o número ACUMULADO DO MÊS dela (reuniões validadas pro SDR;
@@ -301,38 +300,31 @@ def _dias_do_mes_ate(inicio, fim):
     return [inicio + timedelta(days=i) for i in range((fim - inicio).days + 1)]
 
 
-# --- Termômetro de vendas Olympus (pedido do João, 26/10; ajustado 27/10) ---
-# Substitui o antigo card "Detalhamento do dia · Closer". Meta e período
-# mudam ao longo da semana, SEMPRE reiniciando do zero ao entrar num período
-# novo (nunca carrega sobra do período anterior):
-#   - terça e quarta (2 dias)  -> meta R$150.000
-#   - quinta e sexta (2 dias)  -> meta R$200.000
-#   - sábado (1 dia)           -> meta R$100.000
-# Domingo e segunda NÃO somam nada (a janela de acumulação é só terça+quarta
-# — corrigido 27/10, pedido do João: "a data dessa meta é de terça a
-# quarta", vendo o painel numa terça-feira mostrar "domingo a quarta"). Nesses
-# 2 dias o card só adianta a meta/data que vai valer (preview), com
-# realizado travado em 0 — _termometro_olympus abaixo trava isso sozinho
-# porque `fim` cai no futuro (fim_soma = min(fim, hoje) < inicio).
+# --- Termômetro de vendas Olympus (pedido do João, 26/10; reescrito 27/10) --
+# Substitui o antigo card "Detalhamento do dia · Closer". META DIÁRIA —
+# reseta TODO dia (confirmado com o João: "lembrando que todos os dias ela
+# reseta"), mesmo valor de segunda a quarta e no domingo, com só 2 exceções:
+#   - quinta -> meta R$200.000
+#   - sábado -> meta R$100.000
+#   - qualquer outro dia (dom/seg/ter/qua/sex) -> meta R$150.000
+_TERMOMETRO_OLYMPUS_META_DIARIA = {
+    3: 200_000,  # quinta
+    5: 100_000,  # sábado
+}
+_TERMOMETRO_OLYMPUS_META_PADRAO = 150_000
+_TERMOMETRO_OLYMPUS_DIAS_SEMANA = (
+    "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira",
+    "Sexta-feira", "Sábado", "Domingo",
+)
+
+
 def _periodo_termometro_olympus(hoje):
-    """Devolve (inicio, fim, meta, rótulo) do período vigente do termômetro,
-    dado o dia de hoje (date, já em horário de Brasília — mesma `hoje` usada
-    no resto do painel). weekday(): segunda=0 ... domingo=6."""
+    """Devolve (inicio, fim, meta, rótulo) do período vigente do termômetro
+    — SEMPRE o dia de hoje sozinho (inicio == fim == hoje), já que a meta
+    reseta todo dia. weekday(): segunda=0 ... domingo=6."""
     dow = hoje.weekday()
-    if dow == 5:  # sábado
-        return hoje, hoje, 100_000, "Sábado"
-    if dow in (3, 4):  # quinta, sexta
-        inicio = hoje - timedelta(days=(dow - 3))
-        return inicio, inicio + timedelta(days=1), 200_000, "Quinta e sexta"
-    if dow == 1:  # terça
-        return hoje, hoje + timedelta(days=1), 150_000, "Terça e quarta"
-    if dow == 2:  # quarta
-        return hoje - timedelta(days=1), hoje, 150_000, "Terça e quarta"
-    # domingo(6) ou segunda(0): preview da próxima terça/quarta (realizado
-    # fica em 0 até o período começar de verdade).
-    dias_ate_terca = (1 - dow) % 7
-    inicio = hoje + timedelta(days=dias_ate_terca)
-    return inicio, inicio + timedelta(days=1), 150_000, "Terça e quarta"
+    meta = _TERMOMETRO_OLYMPUS_META_DIARIA.get(dow, _TERMOMETRO_OLYMPUS_META_PADRAO)
+    return hoje, hoje, meta, _TERMOMETRO_OLYMPUS_DIAS_SEMANA[dow]
 
 
 def _vendas_diarias_olympus_mult(deals):

@@ -235,7 +235,15 @@
   .termometro-meta-topo { display: flex; flex-direction: column; align-items: center; gap: 0; margin-bottom: 2px; }
   .termometro-meta-rotulo { font-size: 0.6875rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
   .termometro-meta-valor { font-size: 2.25rem; font-weight: 800; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; text-shadow: 0 0 16px rgba(212,175,55,0.35); }
-  .termometro-corpo { position: relative; width: 110px; height: 340px; flex-shrink: 0; }
+  /* Tubo+bulbo e escala como colunas IRMÃS (flex), em vez de uma por cima
+     da outra com posicionamento absoluto manual — CORRIGIDO 27/10 (João:
+     "ficou cortado o 10%"): o bulbo (88px de largura) é mais largo que o
+     tubo (38px) e, com a escala posicionada perto do tubo, a label mais
+     baixa (10%) caía embaixo do bulbo e ficava encoberta por ele (desenhado
+     por cima, depois, no DOM). Como colunas separadas lado a lado, não tem
+     mais essa sobreposição possível. */
+  .termometro-linha { display: flex; align-items: flex-start; gap: 12px; }
+  .termometro-corpo { position: relative; width: 88px; height: 340px; flex-shrink: 0; }
   .termometro-tubo {
     position: absolute; left: 50%; top: 0; transform: translateX(-50%);
     width: 38px; height: 280px; border-radius: 19px 19px 0 0;
@@ -243,10 +251,15 @@
     overflow: hidden; display: flex; align-items: flex-end;
     box-shadow: inset 0 4px 8px rgba(0,0,0,0.35);
   }
+  /* Linhas dividindo cada 10% dentro do tubo (pedido do João 27/10) — uma
+     a cada 28px (280px de tubo ÷ 10), por cima do líquido. */
+  .termometro-tubo-linhas {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0 1px, transparent 1px 28px);
+  }
   .termometro-escala {
-    position: absolute; left: calc(50% + 25px); top: 6px; width: 32px; height: 268px;
-    display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
-    opacity: 0.55;
+    display: flex; flex-direction: column; justify-content: space-between;
+    height: 280px; padding: 2px 0; box-sizing: border-box; opacity: 0.55;
   }
   .termometro-escala-item { font-size: 0.5625rem; font-weight: 600; color: var(--muted); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .termometro-fill {
@@ -613,17 +626,20 @@
         <div class="termometro-meta-topo">
           <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</span>
         </div>
-        <div class="termometro-corpo">
+        <div class="termometro-linha">
+          <div class="termometro-corpo">
+            <div class="termometro-tubo">
+              <div class="termometro-fill{{ ' destaque' if destacado_termo else '' }}" style="height: {{ [termometro_olympus.pct or 0, 100] | min }}%;"></div>
+              <div class="termometro-tubo-linhas"></div>
+            </div>
+            <div class="termometro-bulbo{{ ' destaque' if destacado_termo else '' }}">
+              <span class="termometro-bulbo-pct">{{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%</span>
+            </div>
+          </div>
           <div class="termometro-escala">
             {% for marca in [100, 90, 80, 70, 60, 50, 40, 30, 20, 10] %}
             <span class="termometro-escala-item">{{ marca }}%</span>
             {% endfor %}
-          </div>
-          <div class="termometro-tubo">
-            <div class="termometro-fill{{ ' destaque' if destacado_termo else '' }}" style="height: {{ [termometro_olympus.pct or 0, 100] | min }}%;"></div>
-          </div>
-          <div class="termometro-bulbo{{ ' destaque' if destacado_termo else '' }}">
-            <span class="termometro-bulbo-pct">{{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%</span>
           </div>
         </div>
         <div class="termometro-info">

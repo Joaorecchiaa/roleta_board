@@ -11,9 +11,13 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
     (mesmo campo já usado no Atingimento Olympus), não o valor bruto do
     negócio — pedido do João, 06/10.
   - Detalhamento do dia (SDR, com quadradinhos de progresso Validadas/
-    Agendadas — igual o ARENA) e Detalhamento do dia (Closer, só squad
-    OLYMPUS, com meta/vendido do dia em multiplicador) — reintroduzido a
-    pedido do João, 06/10 (tinha saído na 1ª versão enxuta).
+    Agendadas — igual o ARENA) — reintroduzido a pedido do João, 06/10
+    (tinha saído na 1ª versão enxuta).
+  - Termômetro de vendas Olympus (valor com multiplicador) — SUBSTITUIU o
+    "Detalhamento do dia · Closer" a pedido do João, 26/10. Meta e período
+    mudam ao longo da semana e reiniciam do zero a cada período novo (ver
+    _periodo_termometro_olympus): domingo a quarta R$150K, quinta e sexta
+    R$200K, sábado R$100K.
   - Meta do time — só Sniper e Olympus (Elite tirado a pedido do João, 05/10).
   - Destaque contínuo (Closer e SDR) — card que fica com a mesma pessoa até
     alguém bater o número ACUMULADO DO MÊS dela (reuniões validadas pro SDR;
@@ -284,6 +288,70 @@ def _dias_do_mes_ate(inicio, fim):
     if fim < inicio:
         return []
     return [inicio + timedelta(days=i) for i in range((fim - inicio).days + 1)]
+
+
+# --- Termômetro de vendas Olympus (pedido do João, 26/10) -------------------
+# Substitui o antigo card "Detalhamento do dia · Closer". Meta e período
+# mudam ao longo da semana, SEMPRE reiniciando do zero ao entrar num período
+# novo (nunca carrega sobra do período anterior — confirmado com o João):
+#   - domingo a quarta (4 dias) -> meta R$150.000
+#   - quinta e sexta (2 dias)   -> meta R$200.000
+#   - sábado (1 dia)            -> meta R$100.000
+# (domingo/segunda entram no período de 150K, pedido do João 26/10 — ele só
+# tinha passado terça a sábado; perguntei o que fazer nesses 2 dias e ele
+# confirmou que entram no período de ter-qua, não ficam sem meta).
+_TERMOMETRO_OLYMPUS_PERIODOS = (150_000, 200_000, 100_000)
+
+
+def _periodo_termometro_olympus(hoje):
+    """Devolve (inicio, fim, meta, rótulo) do período vigente do termômetro,
+    dado o dia de hoje (date, já em horário de Brasília — mesma `hoje` usada
+    no resto do painel). weekday(): segunda=0 ... domingo=6."""
+    dow = hoje.weekday()
+    if dow == 5:  # sábado
+        return hoje, hoje, 100_000, "Sábado"
+    if dow in (3, 4):  # quinta, sexta
+        inicio = hoje - timedelta(days=(dow - 3))
+        return inicio, inicio + timedelta(days=1), 200_000, "Quinta e sexta"
+    # domingo(6), segunda(0), terça(1), quarta(2) — período de 4 dias
+    dist_domingo = (dow + 1) % 7
+    inicio = hoje - timedelta(days=dist_domingo)
+    return inicio, inicio + timedelta(days=3), 150_000, "Domingo a quarta"
+
+
+def _vendas_diarias_olympus_mult(deals):
+    """Soma de M2-M (multiplicador) por dia (won_time em Brasília), pra uma
+    lista de deals já validados — usa o mesmo _valor_multiplicador (por
+    deal) já usado nas outras quebras diárias deste painel (vendas_do_dia_
+    detalhado, _primeiro_closer_bateu_meta), nenhuma regra nova."""
+    por_dia = defaultdict(float)
+    for deal in deals:
+        dia = crn_fuso.data_brasil(deal.get("won_time"))
+        if dia is None:
+            continue
+        por_dia[dia] += _valor_multiplicador(deal)
+    return por_dia
+
+
+def _termometro_olympus(deals_realizado_olympus, hoje):
+    """Monta o dict pronto pro template: meta/realizado/% do período vigente
+    (ver _periodo_termometro_olympus), somando dia a dia a partir da MESMA
+    lista de deals que compõe `realizado_olympus` (squad Olympus + extra
+    DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), pra bater com o card "Meta do
+    time" quando o período for o mês inteiro."""
+    inicio, fim, meta, rotulo = _periodo_termometro_olympus(hoje)
+    vendas_por_dia = _vendas_diarias_olympus_mult(deals_realizado_olympus)
+    fim_soma = min(fim, hoje)
+    realizado = sum(vendas_por_dia.get(d, 0.0) for d in _dias_do_mes_ate(inicio, fim_soma))
+    pct = round((realizado / meta) * 100, 1) if meta else None
+    return {
+        "label_periodo": rotulo,
+        "inicio": inicio.strftime("%d/%m"),
+        "fim": fim.strftime("%d/%m"),
+        "meta": meta,
+        "realizado": realizado,
+        "pct": pct,
+    }
 
 
 def _serie_diaria_validadas_sdr(eventos_validados_mes, nomes_sniper_norm, lideres_sniper_norm, inicio, fim):
@@ -823,12 +891,17 @@ def _calcular_dados(month_str):
     _nomes_financeiro_olympus_extra_norm = {
         crn_texto.norm(n) for n in config.DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS
     }
+    # deals_extra_financeiro_olympus: guardado à parte (não só a soma) pra
+    # alimentar o termômetro (_termometro_olympus) com a MESMA população do
+    # "Meta do time" — ver uso logo abaixo de closers_olympus.
+    deals_extra_financeiro_olympus = []
     for deal in validos:
         dono_norm = crn_texto.norm(usuarios.get(crn_texto.dono_id(deal), ""))
         if dono_norm not in _nomes_financeiro_olympus_extra_norm or dono_norm in colab_norm_set:
             continue
         if deal.get("pipeline_id") is not None and int(deal["pipeline_id"]) == config.PIPELINE_IDS["OLYMPUS"]:
             realizado_olympus += _valor_multiplicador(deal)
+            deals_extra_financeiro_olympus.append(deal)
 
     # SNIPER ("Atingimento% - Final" = Financeiro×30% + Reuniões×70%, sem
     # teto): reuniões = eventos M6 cujo SDR está na subárea Sniper da
@@ -1011,31 +1084,12 @@ def _calcular_dados(month_str):
         },
     }
 
-    # --- Detalhamento Closer (só squad OLYMPUS): meta do dia e vendido
-    # hoje em MULTIPLICADOR (M2-M). MIGRAÇÃO CRN (22/10): a população
-    # desta tabela virou "está na Colab deste mês com squad Olympus"
-    # (membros_olympus) em vez de "papel Closer OU subárea MGM/Atlantis
-    # com cargo financeiro" — simplificação aceita junto com a decisão de
-    # squad só-Olympus; quem for subárea Atlantis deixa de aparecer aqui
-    # até ser cadastrado na Colab com squad Olympus (antes aparecia por
-    # uma exceção nomeada só pro caso da Amanda Leal — "Faltou na CRN" se
-    # isso for pedido de volta).
-    closers_olympus = []
-    for p in sorted(membros_olympus, key=lambda p: p["nome"]):
-        nome = p["nome"]
-        alvo_diario = metas_diarias_closer.get(nome)
-        if not alvo_diario:
-            continue
-        info = vendas_do_dia_detalhado.get(nome, {})
-        vendido_hoje_mult = info.get("valor_multiplicador", 0.0)
-        closers_olympus.append({
-            "nome": nome,
-            "alvo_diario": alvo_diario,
-            "vendido_hoje": vendido_hoje_mult,
-            "bateu": vendido_hoje_mult >= alvo_diario,
-            "a_vista_hoje": info.get("a_vista", 0),
-        })
-    closers_olympus.sort(key=lambda c: (-c["vendido_hoje"], c["nome"]))
+    # --- Termômetro de vendas Olympus (substituiu o antigo "Detalhamento do
+    # dia · Closer" a pedido do João, 26/10 — ver _termometro_olympus e
+    # _periodo_termometro_olympus acima pro período/meta da semana). Usa a
+    # MESMA população/fonte de `realizado_olympus` (squad Olympus + extra
+    # DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), só quebrada por dia.
+    termometro_olympus = _termometro_olympus(deals_olympus + deals_extra_financeiro_olympus, hoje)
 
     # --- Destaque do dia: 1º Closer e 1º SDR a bater o Alvo do dia (reseta
     # sozinho na virada da meia-noite).
@@ -1090,7 +1144,7 @@ def _calcular_dados(month_str):
         "primeiro_closer_dia": primeiro_closer_dia,
         "alvo_do_dia_sdr": alvo_do_dia_sdr,
         "detalhe_reunioes_lista": detalhe_reunioes_lista,
-        "closers_olympus": closers_olympus,
+        "termometro_olympus": termometro_olympus,
         "destaque_continuo_sdr": destaque_continuo_sdr,
         "destaque_continuo_closer": destaque_continuo_closer,
         "mostrar_destaque_continuo": True,

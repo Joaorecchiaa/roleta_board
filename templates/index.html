@@ -291,14 +291,15 @@
       linear-gradient(145deg, var(--green), #5be0a0);
     box-shadow: 0 0 16px rgba(62,207,142,0.5);
   }
-  /* Porcentagem bem maior, branca e "viva" — pisca bem suave (opacidade),
-     pedido do João 27/10. */
+  /* Porcentagem "viva" — pisca bem suave (opacidade), pedido do João 27/10.
+     Voltou pra preta (era branca) e um pouco menor, pedido do João 27/10. */
   .termometro-bulbo-pct {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 1.75rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    font-size: 1.375rem; font-weight: 800; color: #1a1406; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.25);
     animation: termoPctPiscar 2.6s ease-in-out infinite;
   }
+  .termometro-bulbo.destaque .termometro-bulbo-pct { color: #06281a; }
   @keyframes termoPctPiscar {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.72; }

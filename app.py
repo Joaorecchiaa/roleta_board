@@ -290,19 +290,19 @@ def _dias_do_mes_ate(inicio, fim):
     return [inicio + timedelta(days=i) for i in range((fim - inicio).days + 1)]
 
 
-# --- Termômetro de vendas Olympus (pedido do João, 26/10) -------------------
+# --- Termômetro de vendas Olympus (pedido do João, 26/10; ajustado 27/10) ---
 # Substitui o antigo card "Detalhamento do dia · Closer". Meta e período
 # mudam ao longo da semana, SEMPRE reiniciando do zero ao entrar num período
-# novo (nunca carrega sobra do período anterior — confirmado com o João):
-#   - domingo a quarta (4 dias) -> meta R$150.000
-#   - quinta e sexta (2 dias)   -> meta R$200.000
-#   - sábado (1 dia)            -> meta R$100.000
-# (domingo/segunda entram no período de 150K, pedido do João 26/10 — ele só
-# tinha passado terça a sábado; perguntei o que fazer nesses 2 dias e ele
-# confirmou que entram no período de ter-qua, não ficam sem meta).
-_TERMOMETRO_OLYMPUS_PERIODOS = (150_000, 200_000, 100_000)
-
-
+# novo (nunca carrega sobra do período anterior):
+#   - terça e quarta (2 dias)  -> meta R$150.000
+#   - quinta e sexta (2 dias)  -> meta R$200.000
+#   - sábado (1 dia)           -> meta R$100.000
+# Domingo e segunda NÃO somam nada (a janela de acumulação é só terça+quarta
+# — corrigido 27/10, pedido do João: "a data dessa meta é de terça a
+# quarta", vendo o painel numa terça-feira mostrar "domingo a quarta"). Nesses
+# 2 dias o card só adianta a meta/data que vai valer (preview), com
+# realizado travado em 0 — _termometro_olympus abaixo trava isso sozinho
+# porque `fim` cai no futuro (fim_soma = min(fim, hoje) < inicio).
 def _periodo_termometro_olympus(hoje):
     """Devolve (inicio, fim, meta, rótulo) do período vigente do termômetro,
     dado o dia de hoje (date, já em horário de Brasília — mesma `hoje` usada
@@ -313,10 +313,15 @@ def _periodo_termometro_olympus(hoje):
     if dow in (3, 4):  # quinta, sexta
         inicio = hoje - timedelta(days=(dow - 3))
         return inicio, inicio + timedelta(days=1), 200_000, "Quinta e sexta"
-    # domingo(6), segunda(0), terça(1), quarta(2) — período de 4 dias
-    dist_domingo = (dow + 1) % 7
-    inicio = hoje - timedelta(days=dist_domingo)
-    return inicio, inicio + timedelta(days=3), 150_000, "Domingo a quarta"
+    if dow == 1:  # terça
+        return hoje, hoje + timedelta(days=1), 150_000, "Terça e quarta"
+    if dow == 2:  # quarta
+        return hoje - timedelta(days=1), hoje, 150_000, "Terça e quarta"
+    # domingo(6) ou segunda(0): preview da próxima terça/quarta (realizado
+    # fica em 0 até o período começar de verdade).
+    dias_ate_terca = (1 - dow) % 7
+    inicio = hoje + timedelta(days=dias_ate_terca)
+    return inicio, inicio + timedelta(days=1), 150_000, "Terça e quarta"
 
 
 def _vendas_diarias_olympus_mult(deals):

@@ -232,6 +232,9 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 10px; padding: 10px 4px 4px; height: 100%; text-align: center;
   }
+  .termometro-meta-topo { display: flex; flex-direction: column; align-items: center; gap: 0; margin-bottom: 2px; }
+  .termometro-meta-rotulo { font-size: 0.6875rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .termometro-meta-valor { font-size: 2.25rem; font-weight: 800; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; text-shadow: 0 0 16px rgba(212,175,55,0.35); }
   .termometro-corpo { position: relative; width: 110px; height: 340px; flex-shrink: 0; }
   .termometro-tubo {
     position: absolute; left: 50%; top: 0; transform: translateX(-50%);
@@ -600,6 +603,10 @@
       {% if termometro_olympus %}
       {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
       <div class="termometro-wrap">
+        <div class="termometro-meta-topo">
+          <span class="termometro-meta-rotulo">Meta</span>
+          <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</span>
+        </div>
         <div class="termometro-corpo">
           <div class="termometro-escala"></div>
           <div class="termometro-tubo">
@@ -614,7 +621,7 @@
           </div>
           <div class="termometro-valores">
             <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>
-            de R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}
+            realizado
           </div>
           <div class="termometro-pct{{ ' destaque' if destacado_termo else '' }}">
             {{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%

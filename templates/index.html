@@ -243,7 +243,7 @@
      por cima, depois, no DOM). Como colunas separadas lado a lado, não tem
      mais essa sobreposição possível. */
   .termometro-linha { display: flex; align-items: flex-start; gap: 12px; }
-  .termometro-corpo { position: relative; width: 88px; height: 340px; flex-shrink: 0; }
+  .termometro-corpo { position: relative; width: 112px; height: 360px; flex-shrink: 0; }
   .termometro-tubo {
     position: absolute; left: 50%; top: 0; transform: translateX(-50%);
     width: 38px; height: 280px; border-radius: 19px 19px 0 0;
@@ -279,7 +279,7 @@
   .termometro-fill.destaque { background: linear-gradient(0deg, var(--green), #5be0a0); }
   .termometro-bulbo {
     position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 88px; height: 88px; border-radius: 50%; border: 4px solid var(--border);
+    width: 112px; height: 112px; border-radius: 50%; border: 4px solid var(--border);
     background:
       radial-gradient(circle at 34% 28%, rgba(255,255,255,0.4), transparent 45%),
       linear-gradient(145deg, #8a6d1a, var(--gold));
@@ -291,12 +291,18 @@
       linear-gradient(145deg, var(--green), #5be0a0);
     box-shadow: 0 0 16px rgba(62,207,142,0.5);
   }
+  /* Porcentagem bem maior, branca e "viva" — pisca bem suave (opacidade),
+     pedido do João 27/10. */
   .termometro-bulbo-pct {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 0.9375rem; font-weight: 800; color: #241c07; font-variant-numeric: tabular-nums;
-    text-shadow: 0 1px 1px rgba(255,255,255,0.25);
+    font-size: 1.75rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    animation: termoPctPiscar 2.6s ease-in-out infinite;
   }
-  .termometro-bulbo.destaque .termometro-bulbo-pct { color: #06281a; }
+  @keyframes termoPctPiscar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.72; }
+  }
   .termometro-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
   .termometro-periodo { font-size: 0.6875rem; font-weight: 700; color: var(--muted); }
   .termometro-datas { font-size: 0.625rem; color: var(--muted); font-weight: 400; opacity: 0.8; }
@@ -645,7 +651,7 @@
         <div class="termometro-info">
           <div class="termometro-periodo">
             {{ termometro_olympus.label_periodo }}
-            <span class="termometro-datas">({{ termometro_olympus.inicio }}–{{ termometro_olympus.fim }})</span>
+            <span class="termometro-datas">({{ termometro_olympus.inicio }})</span>
           </div>
           <div class="termometro-valores">
             <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>

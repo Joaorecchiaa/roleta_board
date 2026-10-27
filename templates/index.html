@@ -219,8 +219,40 @@
   .destrinche-final { border-color: var(--gold); }
   .destrinche-final .destrinche-pct { color: var(--green); }
 
-  /* --- Detalhamento do dia: SDR (quadradinhos) e Closer Olympus (R$) ----- */
+  /* --- Detalhamento do dia: SDR (quadradinhos) e Termômetro Olympus ------ */
   .detalhe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
+
+  /* --- Termômetro de vendas Olympus (substituiu "Detalhamento · Closer",
+     pedido do João 26/10) --------------------------------------------- */
+  .termometro-wrap { display: flex; align-items: flex-end; gap: 16px; padding: 4px 2px 0; height: 100%; }
+  .termometro-tubo {
+    position: relative; width: 24px; height: 140px; flex-shrink: 0;
+    border-radius: 999px; background: #1e1e1e; border: 1px solid var(--border);
+    overflow: hidden; display: flex; align-items: flex-end;
+  }
+  .termometro-fill {
+    position: relative; width: 100%; overflow: hidden;
+    border-radius: 999px 999px 0 0;
+    background: linear-gradient(0deg, #8a6d1a, var(--gold));
+    transition: height 0.6s ease;
+  }
+  .termometro-fill::after {
+    content: ""; position: absolute; inset: 0; height: 40%;
+    background: linear-gradient(0deg, transparent, rgba(255,255,255,0.45), transparent);
+    animation: termoBrilho 2.4s ease-in-out infinite;
+  }
+  @keyframes termoBrilho {
+    0% { transform: translateY(120%); }
+    100% { transform: translateY(-350%); }
+  }
+  .termometro-fill.destaque { background: linear-gradient(0deg, var(--green), #5be0a0); box-shadow: 0 0 8px rgba(62, 207, 142, 0.55); }
+  .termometro-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+  .termometro-periodo { font-size: 0.8125rem; font-weight: 700; color: var(--text); }
+  .termometro-datas { font-size: 0.6875rem; color: var(--muted); font-weight: 400; }
+  .termometro-valores { font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .termometro-valores b { color: var(--gold); }
+  .termometro-pct { font-size: 1.5rem; font-weight: 800; color: var(--gold); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .termometro-pct.destaque { color: var(--green); }
   .detalhe-grid .card { height: 100%; display: flex; flex-direction: column; }
   .detalhe-grid .tabela-detalhe { flex: 1; }
   .tabela-detalhe { width: 100%; border-collapse: collapse; }
@@ -536,29 +568,29 @@
   {% endmacro %}
   <div class="secao detalhe-grid">
     <div class="card">
-      <h2>Detalhamento do dia &middot; Closer</h2>
-      {% if closers_olympus %}
-      <table class="tabela-detalhe">
-        <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
-        <tbody>
-          {% for c in closers_olympus %}
-          <tr>
-            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
-            <td>
-              <span class="rotulo">Meta do dia</span>
-              <span class="valor-rs">R$ {{ "{:,.0f}".format(c.alvo_diario).replace(",", ".") }}</span>
-            </td>
-            <td>
-              <span class="rotulo">Vendido hoje</span>
-              <span class="valor-rs{{ ' bateu' if c.bateu else '' }}">R$ {{ "{:,.0f}".format(c.vendido_hoje).replace(",", ".") }}</span>
-              {% if c.a_vista_hoje %}<span class="selo-a-vista">💰 {{ c.a_vista_hoje }} à vista</span>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <h2>Termômetro &middot; Vendas Olympus</h2>
+      {% if termometro_olympus %}
+      {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
+      <div class="termometro-wrap">
+        <div class="termometro-tubo">
+          <div class="termometro-fill{{ ' destaque' if destacado_termo else '' }}" style="height: {{ [termometro_olympus.pct or 0, 100] | min }}%;"></div>
+        </div>
+        <div class="termometro-info">
+          <div class="termometro-periodo">
+            {{ termometro_olympus.label_periodo }}
+            <span class="termometro-datas">({{ termometro_olympus.inicio }}–{{ termometro_olympus.fim }})</span>
+          </div>
+          <div class="termometro-valores">
+            <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>
+            de R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}
+          </div>
+          <div class="termometro-pct{{ ' destaque' if destacado_termo else '' }}">
+            {{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%
+          </div>
+        </div>
+      </div>
       {% else %}
-      <div class="empty">Nenhum Closer do squad Olympus encontrado (confira a coluna SUBAREA na aba Colaboradores).</div>
+      <div class="empty">Sem meta configurada pro período atual.</div>
       {% endif %}
     </div>
     <div class="card">

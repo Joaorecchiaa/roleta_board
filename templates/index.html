@@ -86,6 +86,7 @@
   }
   .meta-info { position: relative; z-index: 1; color: var(--muted); font-size: 0.75rem; }
   h2 { font-size: 0.8125rem; margin: 0 0 7px; letter-spacing: 0.5px; color: var(--gold); text-transform: uppercase; }
+  h2.titulo-branco { color: var(--text); }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -469,7 +470,7 @@
        na Vercel, mostrar_destaque_continuo sempre True. -->
   {% if mostrar_destaque_continuo %}
   <div class="secao">
-    <h2>&nbsp;</h2>
+    <h2 class="titulo-branco">Destaque contínuo</h2>
     <div class="continuo-grid">
       <div class="card continuo-card">
         {% if destaque_continuo_closer %}
@@ -528,7 +529,7 @@
   </div>
   {% endmacro %}
   <div class="secao">
-    <h2>&nbsp;</h2>
+    <h2 class="titulo-branco">Meta do time</h2>
     <div class="squads-grid">
       {{ barra_squad("Olympus", squads.OLYMPUS) }}
       {{ barra_squad("Sniper", squads.SNIPER) }}
@@ -593,7 +594,7 @@
   {% endmacro %}
   <div class="secao detalhe-grid">
     <div class="card">
-      <h2>&nbsp;</h2>
+      <h2 class="titulo-branco">Termômetro &middot; Vendas Olympus</h2>
       {% if termometro_olympus %}
       {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
       <div class="termometro-wrap">
@@ -623,7 +624,7 @@
       {% endif %}
     </div>
     <div class="card">
-      <h2>&nbsp;</h2>
+      <h2 class="titulo-branco">Detalhamento do dia &middot; SDR</h2>
       {% if alvo_do_dia_sdr %}
       <table class="tabela-detalhe">
         <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>

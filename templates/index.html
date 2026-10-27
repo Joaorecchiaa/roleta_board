@@ -244,10 +244,11 @@
     box-shadow: inset 0 4px 8px rgba(0,0,0,0.35);
   }
   .termometro-escala {
-    position: absolute; left: calc(50% + 24px); top: 8px; width: 12px; height: 264px;
-    background-image: repeating-linear-gradient(0deg, var(--muted) 0 2.5px, transparent 2.5px 34px);
-    opacity: 0.4;
+    position: absolute; left: calc(50% + 25px); top: 6px; width: 32px; height: 268px;
+    display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+    opacity: 0.55;
   }
+  .termometro-escala-item { font-size: 0.5625rem; font-weight: 600; color: var(--muted); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .termometro-fill {
     position: relative; width: 100%; overflow: hidden;
     background: linear-gradient(0deg, #8a6d1a, var(--gold));
@@ -277,6 +278,12 @@
       linear-gradient(145deg, var(--green), #5be0a0);
     box-shadow: 0 0 16px rgba(62,207,142,0.5);
   }
+  .termometro-bulbo-pct {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.9375rem; font-weight: 800; color: #241c07; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.25);
+  }
+  .termometro-bulbo.destaque .termometro-bulbo-pct { color: #06281a; }
   .termometro-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
   .termometro-periodo { font-size: 0.6875rem; font-weight: 700; color: var(--muted); }
   .termometro-datas { font-size: 0.625rem; color: var(--muted); font-weight: 400; opacity: 0.8; }
@@ -607,11 +614,17 @@
           <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</span>
         </div>
         <div class="termometro-corpo">
-          <div class="termometro-escala"></div>
+          <div class="termometro-escala">
+            {% for marca in [100, 90, 80, 70, 60, 50, 40, 30, 20, 10] %}
+            <span class="termometro-escala-item">{{ marca }}%</span>
+            {% endfor %}
+          </div>
           <div class="termometro-tubo">
             <div class="termometro-fill{{ ' destaque' if destacado_termo else '' }}" style="height: {{ [termometro_olympus.pct or 0, 100] | min }}%;"></div>
           </div>
-          <div class="termometro-bulbo{{ ' destaque' if destacado_termo else '' }}"></div>
+          <div class="termometro-bulbo{{ ' destaque' if destacado_termo else '' }}">
+            <span class="termometro-bulbo-pct">{{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%</span>
+          </div>
         </div>
         <div class="termometro-info">
           <div class="termometro-periodo">
@@ -621,9 +634,6 @@
           <div class="termometro-valores">
             <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>
             realizado
-          </div>
-          <div class="termometro-pct{{ ' destaque' if destacado_termo else '' }}">
-            {{ "%.1f"|format(termometro_olympus.pct)|replace(".", ",") if termometro_olympus.pct is not none else "—" }}%
           </div>
         </div>
       </div>

@@ -148,6 +148,17 @@ import time
 import urllib.parse
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+# Fuso de Brasília pro "Atualizado em" do rodapé (ver uso de gerado_em
+# abaixo) — CORRIGIDO 27/10 (achado pelo João: "a hora está errada, acho
+# que está com UTC+3" vendo 13:32 no painel com 10:35 no relógio da TV):
+# `datetime.now()` sem timezone pega o horário do SERVIDOR, que na Vercel
+# roda em UTC, não em Brasília (UTC-3) — dava exatamente essa diferença de
+# 3h. `tzdata` já está no requirements.txt (a própria CRN já depende dele
+# pras conversões de fuso dela, crn.base.fuso) — reaproveitado aqui só pro
+# carimbo de hora do rodapé, sem reimplementar nada da CRN.
+_FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
 
 import requests
 from flask import Flask, render_template, request
@@ -1143,7 +1154,7 @@ def _calcular_dados(month_str):
     return {
         "nome_painel": NOME_PAINEL,
         "month": month_str,
-        "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
+        "gerado_em": datetime.now(_FUSO_BRASIL).strftime("%d/%m/%Y %H:%M"),
         "squads": squads,
         "primeiro_sdr_dia": primeiro_sdr_dia,
         "primeiro_closer_dia": primeiro_closer_dia,

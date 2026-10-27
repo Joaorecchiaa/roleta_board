@@ -225,18 +225,21 @@
   /* --- Termômetro de vendas Olympus (substituiu "Detalhamento · Closer",
      pedido do João 26/10) — visual tipo termômetro de verdade (bulbo +
      tubo graduado), pedido do João 27/10, só um (não dois lado a lado). */
-  .termometro-wrap { display: flex; align-items: center; gap: 20px; padding: 6px 4px 2px; height: 100%; }
-  .termometro-corpo { position: relative; width: 48px; height: 160px; flex-shrink: 0; }
+  .termometro-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 10px 4px 4px; height: 100%; text-align: center;
+  }
+  .termometro-corpo { position: relative; width: 84px; height: 270px; flex-shrink: 0; }
   .termometro-tubo {
     position: absolute; left: 50%; top: 0; transform: translateX(-50%);
-    width: 18px; height: 128px; border-radius: 9px 9px 0 0;
-    background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-bottom: none;
+    width: 30px; height: 220px; border-radius: 15px 15px 0 0;
+    background: rgba(255,255,255,0.05); border: 3px solid var(--border); border-bottom: none;
     overflow: hidden; display: flex; align-items: flex-end;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.35);
   }
   .termometro-escala {
-    position: absolute; left: calc(50% + 12px); top: 4px; width: 7px; height: 118px;
-    background-image: repeating-linear-gradient(0deg, var(--muted) 0 1.5px, transparent 1.5px 16px);
+    position: absolute; left: calc(50% + 19px); top: 6px; width: 10px; height: 206px;
+    background-image: repeating-linear-gradient(0deg, var(--muted) 0 2px, transparent 2px 27px);
     opacity: 0.4;
   }
   .termometro-fill {
@@ -256,24 +259,24 @@
   .termometro-fill.destaque { background: linear-gradient(0deg, var(--green), #5be0a0); }
   .termometro-bulbo {
     position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border);
+    width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--border);
     background:
       radial-gradient(circle at 34% 28%, rgba(255,255,255,0.4), transparent 45%),
       linear-gradient(145deg, #8a6d1a, var(--gold));
-    box-shadow: 0 0 10px rgba(201,162,39,0.4);
+    box-shadow: 0 0 16px rgba(201,162,39,0.45);
   }
   .termometro-bulbo.destaque {
     background:
       radial-gradient(circle at 34% 28%, rgba(255,255,255,0.4), transparent 45%),
       linear-gradient(145deg, var(--green), #5be0a0);
-    box-shadow: 0 0 10px rgba(62,207,142,0.45);
+    box-shadow: 0 0 16px rgba(62,207,142,0.5);
   }
-  .termometro-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-  .termometro-periodo { font-size: 0.8125rem; font-weight: 700; color: var(--text); }
-  .termometro-datas { font-size: 0.6875rem; color: var(--muted); font-weight: 400; }
-  .termometro-valores { font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .termometro-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+  .termometro-periodo { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+  .termometro-datas { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+  .termometro-valores { font-size: 0.9375rem; color: var(--muted); font-variant-numeric: tabular-nums; }
   .termometro-valores b { color: var(--gold); }
-  .termometro-pct { font-size: 1.5rem; font-weight: 800; color: var(--gold); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .termometro-pct { font-size: 2rem; font-weight: 800; color: var(--gold); margin-top: 2px; font-variant-numeric: tabular-nums; }
   .termometro-pct.destaque { color: var(--green); }
   .detalhe-grid .card { height: 100%; display: flex; flex-direction: column; }
   .detalhe-grid .tabela-detalhe { flex: 1; }

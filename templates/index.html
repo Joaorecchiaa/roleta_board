@@ -604,7 +604,6 @@
       {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
       <div class="termometro-wrap">
         <div class="termometro-meta-topo">
-          <span class="termometro-meta-rotulo">Meta</span>
           <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</span>
         </div>
         <div class="termometro-corpo">

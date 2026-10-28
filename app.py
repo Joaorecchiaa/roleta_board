@@ -1229,10 +1229,14 @@ def _pagina_carregando():
 
 
 def _pagina_erro_pipedrive(erro, month_str, modo_tv=False, tv_param=""):
-    auto_refresh = (
-        f'<meta http-equiv="refresh" content="30;url=?month={month_str}&refresh=1{tv_param}">'
-        if modo_tv else ""
-    )
+    # CORRIGIDO 28/10 (achado pelo João: a TV dele abre direto a URL da
+    # Vercel, sem passar por abrir_dashboard.bat nem por ?tv=1 — então o
+    # auto-recarregamento de 30s, que antes só ligava com modo_tv, nunca
+    # entrava em jogo lá e a tela ficava travada num erro passageiro do
+    # Pipedrive/Google Sheets até alguém notar e clicar "Tentar de novo
+    # agora" na mão). Virou incondicional: SEMPRE recarrega sozinho em 30s,
+    # tanto local quanto na Vercel, com ou sem ?tv=1 na URL.
+    auto_refresh = f'<meta http-equiv="refresh" content="30;url=?month={month_str}&refresh=1{tv_param}">'
     return (
         "<!doctype html><html><head><meta charset='utf-8'>"
         f"{auto_refresh}"
@@ -1245,7 +1249,7 @@ def _pagina_erro_pipedrive(erro, month_str, modo_tv=False, tv_param=""):
         "<h1>⚠️ O Pipedrive não respondeu a tempo</h1>"
         f"<p>{erro}</p>"
         f"<p><a href='?month={month_str}&refresh=1{tv_param}'>Tentar de novo agora</a>"
-        f"{' — esta tela recarrega sozinha em 30s.' if modo_tv else ''}</p>"
+        " — esta tela recarrega sozinha em 30s.</p>"
         "</div></body></html>",
         502,
     )

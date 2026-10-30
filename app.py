@@ -300,15 +300,21 @@ def _dias_do_mes_ate(inicio, fim):
     return [inicio + timedelta(days=i) for i in range((fim - inicio).days + 1)]
 
 
-# --- Termômetro de vendas Olympus (pedido do João, 26/10; reescrito 27/10) --
+# --- Termômetro de vendas Olympus (pedido do João, 26/10; reescrito 27/10;
+# CORRIGIDO 30/10 — faltava sexta no dicionário, ver nota abaixo) ----------
 # Substitui o antigo card "Detalhamento do dia · Closer". META DIÁRIA —
 # reseta TODO dia (confirmado com o João: "lembrando que todos os dias ela
-# reseta"), mesmo valor de segunda a quarta e no domingo, com só 2 exceções:
-#   - quinta -> meta R$200.000
-#   - sábado -> meta R$100.000
-#   - qualquer outro dia (dom/seg/ter/qua/sex) -> meta R$150.000
+# reseta"), mesmo valor de domingo a quarta, com 2 exceções:
+#   - quinta e sexta -> meta R$200.000
+#   - sábado         -> meta R$100.000
+#   - qualquer outro dia (dom/seg/ter/qua) -> meta R$150.000
+# BUG CORRIGIDO 30/10 (achado pelo João numa sexta: "deixe hoje com 200mil"):
+# o pedido original (26/10) já era "200K pra quinta E sexta", mas ao
+# reescrever pra meta diária (27/10) só quinta ficou no dicionário — sexta
+# caía no padrão de 150K por engano. Sábado já estava certo.
 _TERMOMETRO_OLYMPUS_META_DIARIA = {
     3: 200_000,  # quinta
+    4: 200_000,  # sexta
     5: 100_000,  # sábado
 }
 _TERMOMETRO_OLYMPUS_META_PADRAO = 150_000

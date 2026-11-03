@@ -1,5 +1,6 @@
 """
-crn_bridge.py — ponte entre o board5anos-dashboard e a biblioteca `crn`
+crn_bridge.py — ponte entre o BOARD BLACK NOVEMBER (pasta board5anos-dashboard
+no disco/GitHub, nome do painel renomeado em 03/11) e a biblioteca `crn`
 ("Centralização de Regras de Negócio da Board Academy", repo privado
 negocios87-sketch/CRN, branch main, instalada localmente a partir do
 instalar.bat da CRN).

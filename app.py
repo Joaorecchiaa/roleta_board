@@ -505,6 +505,9 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
          do dia: 'teve N reuniões a mais da meta do dia'.
       3) Closer — 1 item só pra quem já vendeu ACIMA da meta do dia:
          'vendeu R$ X a mais que a meta hoje'.
+    Cada item carrega "nome" (pedido do João 03/11, 2ª rodada: trocar os
+    ícones de 💰/📅/🚀 do ticker pela FOTO de quem é a notícia) — o
+    template usa esse campo no filtro |fotos, igual já faz nos avatares.
     Não é regra de negócio nova: só reaproveita dado que o resto do painel
     (alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer) já
     buscou/calculou — zero GET extra ao Pipedrive."""
@@ -523,6 +526,7 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
         itens.append({
             "momento": momento,
             "icone": "💰",
+            "nome": nome,
             "texto": f"{nome} vendeu R$ {valor:,.0f} hoje".replace(",", "."),
         })
         if momento_por_closer.get(nome) is None or momento > momento_por_closer[nome]:
@@ -544,7 +548,7 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
         momento = momento_por_sdr.get(sdr["nome"], inicio_do_dia)
         plural = "reunião" if excesso == 1 else "reuniões"
         texto = f"{sdr['nome']} teve {excesso} {plural} a mais da meta do dia"
-        itens.append({"momento": momento, "icone": "📅", "texto": texto})
+        itens.append({"momento": momento, "icone": "📅", "nome": sdr["nome"], "texto": texto})
 
     # 3) Closer acima da meta do dia.
     for nome, info in vendas_do_dia_detalhado.items():
@@ -558,6 +562,7 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
         itens.append({
             "momento": momento,
             "icone": "🚀",
+            "nome": nome,
             "texto": f"{nome} vendeu R$ {diferenca:,.0f} a mais que a meta hoje".replace(",", "."),
         })
 

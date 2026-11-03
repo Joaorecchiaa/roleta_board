@@ -699,7 +699,7 @@
     var linha = document.getElementById(id);
     if (!linha) return;
     linha.style.display = (linha.style.display === "none") ? "" : "none";
-    if (window.__board5anosAjustarZoom) window.__board5anosAjustarZoom();
+    if (window.__boardBlackNovemberAjustarZoom) window.__boardBlackNovemberAjustarZoom();
   }
 
   // Exportar CSV (pedido do João, 23/10) — monta o CSV direto a partir da
@@ -788,7 +788,7 @@
       html.style.fontSize = baixo + "px";
     }
 
-    window.__board5anosAjustarZoom = ajustarZoomParaCaber;
+    window.__boardBlackNovemberAjustarZoom = ajustarZoomParaCaber;
     ajustarZoomParaCaber();
 
     var resizeTimeout;

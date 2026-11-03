@@ -420,6 +420,24 @@
     background: var(--gold); color: #17181c; font-weight: 700; font-size: 0.5625rem;
     border-radius: 999px; padding: 1px 6px;
   }
+  /* Selo "Giro liberado" (pedido do João 03/11; ajustado no mesmo dia —
+     só o PRIMEIRO a bater a meta do dia gira, os demais que baterem depois
+     não) — ao lado do nome de quem já é o primeiro_sdr_dia/primeiro_closer_dia,
+     remetendo à roleta FÍSICA de prêmios que o time gira na mão (confirmado
+     com o João: a roleta em si é manual, isso aqui é só o aviso visual no
+     painel). Mesmo padrão visual do selo "à vista" (pill dourada), com um
+     brilho pulsando pra chamar mais atenção na TV. */
+  .selo-giro {
+    display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
+    background: var(--gold); color: #17181c; font-weight: 700; font-size: 0.5625rem;
+    border-radius: 999px; padding: 1px 7px; white-space: nowrap;
+    animation: seloGiroBrilho 1.8s ease-in-out infinite;
+  }
+  @keyframes seloGiroBrilho {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.55); }
+    50% { box-shadow: 0 0 7px 1px rgba(212,175,55,0.85); }
+  }
+  @media (prefers-reduced-motion: reduce) { .selo-giro { animation: none; } }
   .empty { color: var(--muted); font-size: 0.75rem; padding: 4px 0; }
 
   /* --- Ticker de atividade recente (pedido do João 03/11: "dash mais
@@ -791,7 +809,7 @@
         <tbody>
           {% for c in closers_olympus %}
           <tr class="{{ 'linha--bateu' if c.bateu else ('linha--quase' if c.quase else '') }}">
-            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
+            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span>{% if primeiro_closer_dia and primeiro_closer_dia.nome == c.nome %}<span class="selo-giro">🎡 Giro liberado</span>{% endif %}</span></td>
             <td>
               <span class="rotulo">Meta do dia</span>
               <span class="valor-rs">R$ {{ "{:,.0f}".format(c.alvo_diario).replace(",", ".") }}</span>
@@ -819,7 +837,7 @@
           {% for a in alvo_do_dia_sdr %}
           <tr class="{{ 'linha--bateu' if a.bateu else ('linha--quase' if a.quase else '') }}">
             <td>
-              <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span></span>
+              <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span>{% if primeiro_sdr_dia and primeiro_sdr_dia.nome == a.nome %}<span class="selo-giro">🎡 Giro liberado</span>{% endif %}</span>
             </td>
             <td>{{ bloco_progresso("Validadas", a.feitas_hoje, a.alvo_diario, a.bateu) }}</td>
             <td>{{ bloco_progresso("Agendadas", a.agendamentos_hoje, a.alvo_diario, a.bateu_agendamento) }}</td>

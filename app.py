@@ -967,11 +967,15 @@ def _calcular_dados(month_str):
         feitas_hoje = validadas_hoje_por_sdr.get(nome, 0)
         agendamentos_hoje = agendamentos_hoje_por_sdr.get(nome, 0)
         reunioes_mes_nome = reunioes_detalhe_por_sdr.get(nome, [])
+        bateu_sdr = feitas_hoje >= alvo_diario
         alvo_do_dia_sdr.append({
             "nome": nome,
             "alvo_diario": alvo_diario,
             "feitas_hoje": feitas_hoje,
-            "bateu": feitas_hoje >= alvo_diario,
+            "bateu": bateu_sdr,
+            # "Quase lá" (pedido do João 03/11) — ainda não bateu, mas já
+            # está a 15% ou menos de bater (>= 85% da meta do dia).
+            "quase": (not bateu_sdr) and alvo_diario > 0 and (feitas_hoje / alvo_diario) >= 0.85,
             "agendamentos_hoje": agendamentos_hoje,
             "bateu_agendamento": agendamentos_hoje >= alvo_diario,
             "reunioes_mes": reunioes_mes_nome,
@@ -1270,11 +1274,15 @@ def _calcular_dados(month_str):
                 continue
             info = vendas_do_dia_detalhado.get(nome, {})
             vendido_hoje_mult = info.get("valor_multiplicador", 0.0)
+            bateu_closer = vendido_hoje_mult >= alvo_diario
             closers_olympus.append({
                 "nome": nome,
                 "alvo_diario": alvo_diario,
                 "vendido_hoje": vendido_hoje_mult,
-                "bateu": vendido_hoje_mult >= alvo_diario,
+                "bateu": bateu_closer,
+                # "Quase lá" (pedido do João 03/11) — mesma regra do SDR:
+                # ainda não bateu, mas já vendeu 85% ou mais da meta do dia.
+                "quase": (not bateu_closer) and alvo_diario > 0 and (vendido_hoje_mult / alvo_diario) >= 0.85,
                 "a_vista_hoje": info.get("a_vista", 0),
             })
         closers_olympus.sort(key=lambda c: (-c["vendido_hoje"], c["nome"]))

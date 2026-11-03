@@ -138,7 +138,7 @@ CLOSERS_DO_MES = {
 # dar ponto pra ela.
 DENISE_MUSSOLIN_NOME = "Denise Mussolin"
 
-# Gustavo Fabro (pedido do João, 06/10 no BOARD 5ANOS): ele é Closer de
+# Gustavo Fabro (pedido do João, 06/10 no BOARD BLACK NOVEMBER): ele é Closer de
 # verdade, mas do squad/funil ELITE — não do OLYMPUS, que é o único Closer
 # que esse painel mostra. Está cadastrado como "Head" na planilha de
 # colaboradores. Mesma ideia da Denise acima: precisa ser reconhecido como
@@ -158,7 +158,7 @@ DENISE_MUSSOLIN_NOME = "Denise Mussolin"
 # planilha sem essa exceção ser removida daqui.
 GUSTAVO_FABRO_NOME = "Gustavo Fabro"
 
-# Thais Montalvão e Fernanda Alves (pedido do João, 08/10 no BOARD 5ANOS):
+# Thais Montalvão e Fernanda Alves (pedido do João, 08/10 no BOARD BLACK NOVEMBER):
 # mesmo mecanismo exato do Gustavo Fabro acima — quando uma reunião
 # agendada por um SDR é marcada 'Reunião Válida?'='Sim' e o negócio está
 # com uma delas como Proprietário (dono do negócio = "closer" da
@@ -235,7 +235,7 @@ def eh_closer_do_mes(nome_completo, pipeline_id=None):
     antigo (só CLOSERS_DO_MES) pros chamadores que ainda não repassam o
     negócio.
 
-    Terceiro caso especial (06/10, BOARD 5ANOS): quem está em
+    Terceiro caso especial (06/10, BOARD BLACK NOVEMBER): quem está em
     DONOS_VALIDOS_EXTRA (hoje só Gustavo Fabro) conta como Closer do mês
     SEMPRE, qualquer pipeline — ele é Closer de verdade, só não aparece nas
     tabelas de Closer do painel porque o papel dele na planilha continua
@@ -291,7 +291,7 @@ SDR_EXCLUIDOS = {
     # aparecer como SDR quando ele acaba sendo a única atividade do grupo
     # (fallback de _criador_da_reuniao).
     "Matheus Paz",
-    # Marlon Silva SAIU daqui em 07/10 (pedido do João, BOARD 5ANOS) — ele
+    # Marlon Silva SAIU daqui em 07/10 (pedido do João, BOARD BLACK NOVEMBER) — ele
     # tinha entrado em 02/09 (ARENA) porque "não é SDR, não deve participar
     # do Ranking SDR nem de nenhum painel". Isso continua verdade, mas
     # agora a reunião validada DELE (e da Stephanie Nascimento, que nunca
@@ -353,7 +353,7 @@ COLABORADORES_REMOVIDOS_MANUALMENTE = {
 
 # Líderes (Team Leader/Head) que PODEM validar reunião pra conta própria
 # (owner_id/creator de uma atividade, dentro da subárea Sniper na planilha)
-# mas não são SDR de cota — CORRIGIDO 07/10 (pedido do João, BOARD 5ANOS):
+# mas não são SDR de cota — CORRIGIDO 07/10 (pedido do João, BOARD BLACK NOVEMBER):
 # a reunião validada delas conta na Meta do time SNIPER (reunioes_validadas_
 # no_mes), mas elas não devem aparecer em nenhum painel INDIVIDUAL de SDR
 # (Detalhamento do dia, Destaque do dia, Destaque contínuo). Em

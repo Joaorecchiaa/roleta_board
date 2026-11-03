@@ -458,6 +458,17 @@ def _momento_venda_seguro(deal, hoje):
     return datetime.combine(hoje, datetime.min.time())
 
 
+def _sem_fuso(momento):
+    """Tira o tzinfo (se tiver) pra poder comparar/ordenar junto com os
+    datetimes NAIVE que _momento_venda_seguro devolve — BUG achado em
+    produção 03/11 ('TypeError: can't compare offset-naive and
+    offset-aware datetimes'): `ev['momento']` (de _crn_atividade_momento,
+    da CRN) vem timezone-aware, mas o datetime de venda é naive. Só
+    normaliza pra ordenar o ticker; não muda a hora em si (já está em
+    Brasília dos dois lados)."""
+    return momento.replace(tzinfo=None) if momento.tzinfo is not None else momento
+
+
 def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm, hoje, limite=15):
     """Ticker de 'atividade recente' (pedido do João 03/11: 'deixar o dash
     mais dinâmico') — junta reuniões validadas e vendas de HOJE (só squad
@@ -470,7 +481,7 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
         if not ev["sdr"]:
             continue
         itens.append({
-            "momento": ev["momento"],
+            "momento": _sem_fuso(ev["momento"]),
             "icone": "📅",
             "texto": f"{ev['sdr']} validou uma reunião",
         })
@@ -480,7 +491,7 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
             continue
         valor = _valor_multiplicador(deal)
         itens.append({
-            "momento": _momento_venda_seguro(deal, hoje),
+            "momento": _sem_fuso(_momento_venda_seguro(deal, hoje)),
             "icone": "💰",
             "texto": f"{nome} fechou uma venda de R$ {valor:,.0f}".replace(",", "."),
         })

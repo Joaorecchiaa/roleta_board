@@ -626,8 +626,8 @@
   {% endmacro %}
   <div class="secao detalhe-grid">
     <div class="card">
+      {% if mostrar_termometro_olympus and termometro_olympus %}
       <h2 class="titulo-branco">Termômetro &middot; Vendas Olympus</h2>
-      {% if termometro_olympus %}
       {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
       <div class="termometro-wrap">
         <div class="termometro-meta-topo">
@@ -652,7 +652,7 @@
         <div class="termometro-info">
           <div class="termometro-periodo">
             {{ termometro_olympus.label_periodo }}
-            <span class="termometro-datas">({{ termometro_olympus.inicio }})</span>
+            <span class="termometro-datas">({{ termometro_olympus.inicio }}–{{ termometro_olympus.fim }})</span>
           </div>
           <div class="termometro-valores">
             <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>
@@ -661,7 +661,30 @@
         </div>
       </div>
       {% else %}
-      <div class="empty">Sem meta configurada pro período atual.</div>
+      <h2 class="titulo-branco">Detalhamento do dia &middot; Closer</h2>
+      {% if closers_olympus %}
+      <table class="tabela-detalhe">
+        <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
+        <tbody>
+          {% for c in closers_olympus %}
+          <tr>
+            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
+            <td>
+              <span class="rotulo">Meta do dia</span>
+              <span class="valor-rs">R$ {{ "{:,.0f}".format(c.alvo_diario).replace(",", ".") }}</span>
+            </td>
+            <td>
+              <span class="rotulo">Vendido hoje</span>
+              <span class="valor-rs{{ ' bateu' if c.bateu else '' }}">R$ {{ "{:,.0f}".format(c.vendido_hoje).replace(",", ".") }}</span>
+              {% if c.a_vista_hoje %}<span class="selo-a-vista">💰 {{ c.a_vista_hoje }} à vista</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Nenhum Closer do squad Olympus encontrado (confira a coluna SUBAREA na aba Colaboradores).</div>
+      {% endif %}
       {% endif %}
     </div>
     <div class="card">

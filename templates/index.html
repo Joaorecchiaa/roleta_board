@@ -348,7 +348,7 @@
   .termometro-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
   .termometro-periodo { font-size: 0.6875rem; font-weight: 700; color: var(--muted); }
   .termometro-datas { font-size: 0.625rem; color: var(--muted); font-weight: 400; opacity: 0.8; }
-  .termometro-valores { font-size: 0.6875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .termometro-valores { font-size: 0.9375rem; color: var(--muted); font-variant-numeric: tabular-nums; }
   .termometro-valores b { color: var(--gold); }
   .termometro-pct { font-size: 1.125rem; font-weight: 800; color: var(--gold); margin-top: 1px; font-variant-numeric: tabular-nums; }
   .termometro-pct.destaque { color: var(--green); }
@@ -834,7 +834,8 @@
       {% set destacado_termo = termometro_olympus.pct is not none and termometro_olympus.pct >= 100 %}
       <div class="termometro-wrap">
         <div class="termometro-meta-topo">
-          <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</span>
+          <span class="termometro-meta-rotulo">Realizado na semana</span>
+          <span class="termometro-meta-valor">R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</span>
         </div>
         <div class="termometro-linha">
           <div class="termometro-corpo">
@@ -858,8 +859,7 @@
             <span class="termometro-datas">({{ termometro_olympus.inicio }}–{{ termometro_olympus.fim }})</span>
           </div>
           <div class="termometro-valores">
-            <b>R$ {{ "{:,.0f}".format(termometro_olympus.realizado).replace(",", ".") }}</b>
-            realizado
+            meta <b>R$ {{ "{:,.0f}".format(termometro_olympus.meta).replace(",", ".") }}</b>
           </div>
         </div>
       </div>

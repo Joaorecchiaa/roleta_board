@@ -1,5 +1,6 @@
 """
-BOARD 5ANOS — dashboard web (Flask), painel enxuto pra outubro/2026.
+BOARD BLACK NOVEMBER — dashboard web (Flask), painel enxuto pra novembro/2026
+(renomeado de "BOARD 5ANOS" a pedido do João, 03/11 — virou o mês).
 
 Nasceu como uma versão reduzida do ARENA (setembro/2026): reaproveita os
 mesmos arquivos de lógica (config.py, colaboradores.py, pipedrive_client.py,
@@ -188,7 +189,7 @@ app.jinja_loader = ChoiceLoader([
     FileSystemLoader(_BASE_DIR),
 ])
 
-NOME_PAINEL = "BOARD 5ANOS"
+NOME_PAINEL = "BOARD BLACK NOVEMBER"
 
 # ---------------------------------------------------------------------------
 # Metas diárias FIXAS (pedido do João, 06/10) — diferente do ARENA, que

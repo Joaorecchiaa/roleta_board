@@ -1008,29 +1008,35 @@
     var t = 0;
 
     // CORRIGIDO 07/10 — o gradiente radial do brilho de fundo era recriado
-    // (createRadialGradient, uma operação cara) em TODO frame, só pra uma
-    // pulsação lenta (~10s por ciclo). Agora só recalcula a cada 10
-    // frames (6x menos vezes) e reaproveita o último gradiente nos frames
-    // entre um recálculo e outro — a pulsação continua suave de olho nu.
+    // (createRadialGradient, uma operação cara) em TODO frame. Só recalcula
+    // a cada FRAME_SKIP_GRADIENTE frames e reaproveita o último gradiente
+    // nos frames entre um recálculo e outro.
+    //
+    // MUDADO 03/11 (pedido do João: "deixei essa cor de fundo sem piscar,
+    // mas ela passando devagar pela tela toda, 'andando'") — antes o
+    // brilho ficava PARADO num canto só PISCANDO (opacidade/raio
+    // oscilando). Agora opacidade e raio são FIXOS (sem piscar) e quem se
+    // move é a POSIÇÃO do brilho — percorre a tela inteira devagar, num
+    // trajeto meio solto (frequências diferentes em X e Y, tipo Lissajous)
+    // em vez de ir e voltar numa linha reta óbvia. Baixei o
+    // FRAME_SKIP_GRADIENTE (10→4) pra esse movimento contínuo ficar mais
+    // suave; ainda é barato de desenhar (só 1 gradiente por recálculo).
     var gradCache = null;
     var gradCacheFrame = -999;
-    var FRAME_SKIP_GRADIENTE = 10;
+    var FRAME_SKIP_GRADIENTE = 4;
     function desenharFundo(numFrame) {
       ctx.clearRect(0, 0, largura, altura);
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, largura, altura);
 
       if (!gradCache || numFrame - gradCacheFrame >= FRAME_SKIP_GRADIENTE) {
-        // Pulso mais rápido e cor mais viva/saturada (pedido do João
-        // 03/11: "uma cor um pouco mais viva") — era um dourado mais
-        // acinzentado (212,175,55); agora um âmbar mais puro/quente
-        // (255,183,40), com mais opacidade no centro do brilho.
-        var pulso = reduzMovimento ? 0.5 : (Math.sin(t * 0.0026) + 1) / 2;
-        var glowX = largura * 0.22;
-        var glowY = altura * (0.92 - pulso * 0.05);
-        var glowR = Math.max(largura, altura) * (0.55 + pulso * 0.1);
+        var faseX = reduzMovimento ? 0 : t * 0.00009;
+        var faseY = reduzMovimento ? 0 : t * 0.00006;
+        var glowX = largura * (0.5 + 0.42 * Math.sin(faseX));
+        var glowY = altura * (0.5 + 0.42 * Math.sin(faseY * 0.73 + 1.7));
+        var glowR = Math.max(largura, altura) * 0.6;
         gradCache = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, glowR);
-        gradCache.addColorStop(0, "rgba(255,183,40," + (0.28 + pulso * 0.09) + ")");
+        gradCache.addColorStop(0, "rgba(255,183,40,0.30)");
         gradCache.addColorStop(0.4, "rgba(200,130,20,0.13)");
         gradCache.addColorStop(1, "rgba(0,0,0,0)");
         gradCacheFrame = numFrame;

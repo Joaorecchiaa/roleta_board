@@ -425,9 +425,9 @@
      selo_giro acima pro histórico/contexto completo do pedido). No
      detalhamento das tabelas o João pediu pra manter a pill de texto
      simples (.selo-giro-pill, logo abaixo) — não essa medalha. */
-  .destaque-card { min-height: 150px; }
+  .destaque-card { min-height: 185px; }
   .selo-giro {
-    display: inline-block; vertical-align: middle; flex: none; width: 104px; height: 130px;
+    display: inline-block; vertical-align: middle; flex: none; width: 150px; height: 187px;
     position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   }
   .selo-giro-svg {
@@ -437,7 +437,7 @@
   .selo-giro-dentes { fill: var(--gold); }
   .selo-giro-fundo { fill: #111214; stroke: var(--gold); stroke-width: 1.2; }
   .selo-giro-fita { fill: #16181b; stroke: var(--gold); stroke-width: 1; }
-  .selo-giro-anel { font: 700 6.4px Arial, sans-serif; letter-spacing: 1.3px; fill: var(--gold); }
+  .selo-giro-texto { font: 800 13px Arial, sans-serif; letter-spacing: 0.5px; fill: var(--gold); text-anchor: middle; }
   @keyframes seloGiroBrilho {
     0%, 100% { filter: drop-shadow(0 0 3px rgba(212,175,55,0.45)); }
     50% { filter: drop-shadow(0 0 9px rgba(212,175,55,0.9)); }
@@ -477,6 +477,7 @@
   .ticker-conteudo { display: flex; align-items: center; flex-shrink: 0; animation: tickerRolar 64s linear infinite; }
   @keyframes tickerRolar { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
   .ticker-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text); padding: 0 10px; }
+  .ticker-icone { font-size: 0.875rem; line-height: 1; }
   .ticker-sep { color: var(--muted); }
   @media (prefers-reduced-motion: reduce) { .ticker-conteudo { animation: none; } }
 
@@ -610,28 +611,28 @@
   </span>
   {% endmacro %}
   {% macro selo_giro(arc_id) %}
-  {# Selo "Roleta do dia" (pedido do João 03/11; formato final — medalha
-     tipo "selo de qualidade" com borda de engrenagem, fundo escuro, texto
-     em arco "ROLETA DO DIA" e fita dupla embaixo, igual ao print de
-     referência (Magnific/"QUALIDADE GARANTIDA") — SEM ícone no meio
-     (pedido do mesmo dia, depois de ver o resultado com 🎡 no centro):
-     só o texto contornando — SÓ no bloco de Destaque do dia, não no
-     detalhamento diário das tabelas, que continua com a pill de texto
-     .selo-giro-pill) — aparece quando já existe primeiro_sdr_dia /
-     primeiro_closer_dia (alguém bateu a meta do dia), remetendo à
-     roleta FÍSICA de prêmios que o time gira na mão (a roleta em si é
-     manual, isso aqui é só o selo visual no painel). #}
+  {# Selo "Roleta do dia" (pedido do João 03/11; medalha tipo "selo de
+     qualidade" com borda de engrenagem, fundo escuro e fita dupla
+     embaixo, igual ao print de referência Magnific/"QUALIDADE
+     GARANTIDA") — texto reescrito no mesmo dia: o texto em ARCO
+     ("ROLETA DO DIA" contornando o selo) ficou pequeno demais pra ler
+     na TV de longe, então trocado por texto RETO e grande, em duas
+     linhas, centralizado (bem mais legível à distância que texto
+     curvo). SÓ no bloco de Destaque do dia, não no detalhamento diário
+     das tabelas, que continua com a pill de texto .selo-giro-pill) —
+     aparece quando já existe primeiro_sdr_dia / primeiro_closer_dia
+     (alguém bateu a meta do dia), remetendo à roleta FÍSICA de prêmios
+     que o time gira na mão (a roleta em si é manual, isso aqui é só o
+     selo visual no painel). arc_id não é mais usado (sobra de quando o
+     texto era em arco) — mantido no parâmetro só pra não quebrar as
+     chamadas existentes. #}
   <span class="selo-giro" title="Roleta do dia">
     <svg viewBox="0 0 100 125" class="selo-giro-svg">
-      <defs>
-        <path id="{{ arc_id }}" d="M 50 42 m -29 0 a 29 29 0 1 1 58 0 a 29 29 0 1 1 -58 0" />
-      </defs>
       <polygon class="selo-giro-fita" points="38,68 38,118 50,108 62,118 62,68" />
       <path class="selo-giro-dentes" d="M 90.0 42.0 L 84.31 45.61 L 89.13 50.32 L 82.81 52.66 L 86.54 58.27 L 79.88 59.25 L 82.36 65.51 L 75.64 65.09 L 76.77 71.73 L 70.28 69.91 L 70.0 76.64 L 64.03 73.52 L 62.36 80.04 L 57.17 75.75 L 54.18 81.78 L 50.0 76.5 L 45.82 81.78 L 42.83 75.75 L 37.64 80.04 L 35.97 73.52 L 30.0 76.64 L 29.72 69.91 L 23.23 71.73 L 24.36 65.09 L 17.64 65.51 L 20.12 59.25 L 13.46 58.27 L 17.19 52.66 L 10.87 50.32 L 15.69 45.61 L 10.0 42.0 L 15.69 38.39 L 10.87 33.68 L 17.19 31.34 L 13.46 25.73 L 20.12 24.75 L 17.64 18.49 L 24.36 18.91 L 23.23 12.27 L 29.72 14.09 L 30.0 7.36 L 35.97 10.48 L 37.64 3.96 L 42.83 8.25 L 45.82 2.22 L 50.0 7.5 L 54.18 2.22 L 57.17 8.25 L 62.36 3.96 L 64.03 10.48 L 70.0 7.36 L 70.28 14.09 L 76.77 12.27 L 75.64 18.91 L 82.36 18.49 L 79.88 24.75 L 86.54 25.73 L 82.81 31.34 L 89.13 33.68 L 84.31 38.39 Z" />
       <circle cx="50" cy="42" r="33" class="selo-giro-fundo" />
-      <text class="selo-giro-anel">
-        <textPath href="#{{ arc_id }}" startOffset="2%">★ ROLETA DO DIA ★ ROLETA DO DIA</textPath>
-      </text>
+      <text x="50" y="38" class="selo-giro-texto">ROLETA</text>
+      <text x="50" y="52" class="selo-giro-texto">DO DIA</text>
     </svg>
   </span>
   {% endmacro %}
@@ -907,13 +908,13 @@
     <div class="ticker-trilho">
       <div class="ticker-conteudo">
         {% for item in atividades_recentes %}
-        <span class="ticker-item">{{ avatar_mini(item.nome) }}{{ item.texto }}</span>
+        <span class="ticker-item">{% if item.nome %}{{ avatar_mini(item.nome) }}{% else %}<span class="ticker-icone">{{ item.icone }}</span>{% endif %}{{ item.texto }}</span>
         <span class="ticker-sep">&bull;</span>
         {% endfor %}
       </div>
       <div class="ticker-conteudo" aria-hidden="true">
         {% for item in atividades_recentes %}
-        <span class="ticker-item">{{ avatar_mini(item.nome) }}{{ item.texto }}</span>
+        <span class="ticker-item">{% if item.nome %}{{ avatar_mini(item.nome) }}{% else %}<span class="ticker-icone">{{ item.icone }}</span>{% endif %}{{ item.texto }}</span>
         <span class="ticker-sep">&bull;</span>
         {% endfor %}
       </div>
@@ -1084,6 +1085,14 @@
     }
     function iniciarFotos(raiz) {
       (raiz || document).querySelectorAll(".foto[data-candidatos]").forEach(function (img) {
+        // CORRIGIDO 03/11 (bug visto no ticker, fotos virando "?"): um nó
+        // CLONADO (ver script do ticker mais abaixo) herda o src e a
+        // classe "carregada" de uma foto que já tinha dado certo — se a
+        // gente chamasse tentarProximaFoto nele de novo sem checar isso,
+        // avançava pro PRÓXIMO candidato (que pode nem existir) e
+        // sobrescrevia um src perfeitamente bom. Pulando quem já carregou
+        // evita isso.
+        if (img.classList.contains("carregada")) return;
         img.addEventListener("error", function () { tentarProximaFoto(img); });
         img.addEventListener("load", function () {
           img.classList.add("carregada");

@@ -48,17 +48,23 @@
 
   .wrap { max-width: 1680px; margin: 0 auto; position: relative; z-index: 1; }
   header { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding: 6px 4px; overflow: hidden; }
-  /* --- Numeral "5" gigante e esmaecido atrás do título, baseado no
-       elemento decorativo em linha fina da logo (imagem de referência,
-       06/10) — fica só na faixa do cabeçalho, não na página inteira (o
-       fundo continua preto sólido, como pedido antes). */
+  /* --- Texto gigante e esmaecido atrás do título, baseado no elemento
+       decorativo em linha fina da logo (imagem de referência, 06/10) —
+       fica só na faixa do cabeçalho, não na página inteira (o fundo
+       continua preto sólido, como pedido antes). Era o numeral "5" (logo
+       do "BOARD 5ANOS"); TROCADO 03/11 (pedido do João, depois da
+       renomeação pra "BOARD BLACK NOVEMBER") por "BLACK NOVEMBER" —
+       fonte bem menor que o "5" sozinho pra caber a frase inteira sem
+       estourar o cabeçalho. */
   header::before {
-    content: "5";
+    content: "BLACK NOVEMBER";
     position: absolute;
-    right: -0.12em; top: 50%; transform: translateY(-50%);
+    right: -0.02em; top: 50%; transform: translateY(-50%);
     font-family: "Anton", Impact, "Arial Narrow", sans-serif;
-    font-size: 7rem;
+    font-size: 2.75rem;
+    letter-spacing: 2px;
     line-height: 1;
+    white-space: nowrap;
     color: transparent;
     -webkit-text-stroke: 1px rgba(185, 160, 106, 0.22);
     pointer-events: none;
@@ -348,9 +354,13 @@
   /* Destaque (não mais "apagado") pra quem já bateu a meta do dia — pedido
      do João 03/11: "deixa a linha do nome da pessoa no detalhamento em
      destaque" (antes isso deixava a linha meio apagada, o oposto do que
-     ele quer agora). */
+     ele quer agora). Era um gradiente (90deg, mais forte pra mais fraco);
+     TROCADO 03/11 (pedido do João: "deixe tbm o destaque verde continuo")
+     — cada <td> desenhava o gradiente inteiro por conta própria, criando
+     uma "costura" entre as colunas (Nome/Validadas/Agendadas) em vez de
+     um verde contínuo pela linha toda. Cor sólida resolve, sem costura. */
   .tabela-detalhe tr.linha--bateu td {
-    background: linear-gradient(90deg, rgba(62,207,142,0.16), rgba(62,207,142,0.02));
+    background: rgba(62,207,142,0.1);
   }
   /* A barrinha lateral só na 1ª célula da linha (pedido do João 03/11:
      "deixa continuo, sem essas duas divisorias ao lado de 'Validadas' e

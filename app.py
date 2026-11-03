@@ -297,18 +297,41 @@ def _destaque_continuo_sem_estado(serie_diaria, fim):
     """serie_diaria: lista de (dia, {nome: valor ACUMULADO até esse dia}),
     em ordem crescente de dia, cobrindo do início do mês até `fim`
     (inclusive). Retorna {"nome", "valor", "dias"} pronto pro template, ou
-    None se ninguém pontuou ainda no mês."""
+    None se ninguém pontuou ainda no mês.
+
+    CORRIGIDO 03/11 (achado pelo João: a Rafaela empatou com a Bruna — as
+    duas bateram 3 no mesmo dia — e o painel passou a liderança pra
+    Rafaela mesmo assim; regra certa, nas palavras dele: 'a Bruna só sai
+    quando a Rafaela bater 4', ou seja um número MAIOR do que quem já
+    estava, nunca empate). O bug: a versão antiga comparava o maior valor
+    do dia (`max(candidatos.items())`) contra o valor do líder NO DIA
+    ANTERIOR (`valor_atual` só era atualizado quando alguém virava
+    líder) — se o próprio líder também crescesse naquele dia e empatasse
+    com o desafiante, o empate "vencia" por sorte da ordem de iteração do
+    dict (`max` devolve o primeiro em empate), entregando a liderança sem
+    ninguém ter superado ninguém de verdade. Agora compara o desafiante
+    contra o valor do PRÓPRIO líder NESSE MESMO DIA (não o de ontem) —
+    só troca quando o desafiante tem estritamente mais do que o líder
+    tem hoje; em empate, o líder atual fica."""
     nome_atual = valor_atual = desde = None
     for dia, candidatos in serie_diaria:
         if not candidatos:
             continue
-        nome_top, valor_top = max(candidatos.items(), key=lambda kv: kv[1])
-        if not valor_top or valor_top <= 0:
+        if nome_atual is None:
+            nome_top, valor_top = max(candidatos.items(), key=lambda kv: kv[1])
+            if not valor_top or valor_top <= 0:
+                continue
+            nome_atual, valor_atual, desde = nome_top, valor_top, dia
             continue
-        if valor_atual is None or valor_top > valor_atual:
-            if nome_top != nome_atual:
-                desde = dia
-            nome_atual, valor_atual = nome_top, valor_top
+        valor_lider_hoje = candidatos.get(nome_atual, valor_atual)
+        desafiantes = {nome: valor for nome, valor in candidatos.items() if nome != nome_atual}
+        nome_desafiante, valor_desafiante = (
+            max(desafiantes.items(), key=lambda kv: kv[1]) if desafiantes else (None, 0)
+        )
+        if valor_desafiante > valor_lider_hoje:
+            nome_atual, valor_atual, desde = nome_desafiante, valor_desafiante, dia
+        else:
+            valor_atual = valor_lider_hoje
     if nome_atual is None:
         return None
     dias = (fim - desde).days + 1
@@ -471,14 +494,16 @@ def _sem_fuso(momento):
 
 def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm,
                                alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer, hoje, limite=15):
-    """'Notícias' do dia pro ticker (pedido do João 03/11; REFEITO 03/11 —
-    o 1º formato era 1 item por evento cru; o João pediu pra virar
-    'notícias' mais prontas, com 3 tipos):
+    """'Notícias' do dia pro ticker (pedido do João 03/11; REFEITO 03/11 2x —
+    1º formato era 1 item por evento cru; 2º formato tinha o número cru de
+    reuniões de quem não passou da meta ('teve N reuniões validadas no
+    dia'), que o João pediu pra tirar: 'não quero o detalhamento... quero
+    apenas o excesso'. Formato final, só 3 tipos, todos de EXCESSO sobre a
+    meta (nunca o número cru):
       1) Vendas do dia — 1 item por negócio ganho hoje (só squad OLYMPUS).
-      2) SDR — 1 item por SDR com reunião validada hoje: 'agendou N a mais
-         que a meta' quando já passou do agendamento do dia, senão 'teve N
-         reuniões validadas no dia'.
-      3) Closer — 1 item por Closer que já vendeu ACIMA da meta do dia:
+      2) SDR — 1 item só pra quem já passou da meta de reuniões validadas
+         do dia: 'teve N reuniões a mais da meta do dia'.
+      3) Closer — 1 item só pra quem já vendeu ACIMA da meta do dia:
          'vendeu R$ X a mais que a meta hoje'.
     Não é regra de negócio nova: só reaproveita dado que o resto do painel
     (alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer) já
@@ -513,16 +538,12 @@ def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, 
             momento_por_sdr[ev["sdr"]] = momento
     inicio_do_dia = datetime.combine(hoje, datetime.min.time())
     for sdr in alvo_do_dia_sdr:
-        if sdr["feitas_hoje"] <= 0:
+        excesso = sdr["feitas_hoje"] - sdr["alvo_diario"]
+        if excesso <= 0:
             continue
         momento = momento_por_sdr.get(sdr["nome"], inicio_do_dia)
-        if sdr["agendamentos_hoje"] > sdr["alvo_diario"]:
-            diferenca = sdr["agendamentos_hoje"] - sdr["alvo_diario"]
-            plural = "reunião" if diferenca == 1 else "reuniões"
-            texto = f"{sdr['nome']} agendou {diferenca} {plural} a mais que a meta hoje"
-        else:
-            plural = "reunião validada" if sdr["feitas_hoje"] == 1 else "reuniões validadas"
-            texto = f"{sdr['nome']} teve {sdr['feitas_hoje']} {plural} no dia"
+        plural = "reunião" if excesso == 1 else "reuniões"
+        texto = f"{sdr['nome']} teve {excesso} {plural} a mais da meta do dia"
         itens.append({"momento": momento, "icone": "📅", "texto": texto})
 
     # 3) Closer acima da meta do dia.

@@ -14,10 +14,14 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
   - Detalhamento do dia (SDR, com quadradinhos de progresso Validadas/
     Agendadas — igual o ARENA) — reintroduzido a pedido do João, 06/10
     (tinha saído na 1ª versão enxuta).
-  - Termômetro de vendas Olympus (valor com multiplicador) — SUBSTITUIU o
-    "Detalhamento do dia · Closer" a pedido do João, 26/10. Meta DIÁRIA, que
-    reseta todo dia (ver _periodo_termometro_olympus): R$150K na maioria dos
-    dias, R$200K na quinta, R$100K no sábado.
+  - Detalhamento do dia (Closer, só squad OLYMPUS, meta/vendido do dia em
+    multiplicador) — PADRÃO desde 03/11. Entre 26/10 e 03/11 esse card tinha
+    sido substituído por um Termômetro de vendas Olympus com meta diária;
+    voltou a pedido do João (virada do mês). O termômetro não foi removido,
+    só virou EVENTO ESPECIAL: aparece no lugar do detalhamento de closers só
+    nas janelas de `_TERMOMETRO_OLYMPUS_EVENTOS` (a primeira é 15/11 a
+    21/11/26, meta R$300K pra semana inteira) — fora dessas janelas, o card
+    é sempre o detalhamento de closers.
   - Meta do time — só Sniper e Olympus (Elite tirado a pedido do João, 05/10).
   - Destaque contínuo (Closer e SDR) — card que fica com a mesma pessoa até
     alguém bater o número ACUMULADO DO MÊS dela (reuniões validadas pro SDR;
@@ -302,36 +306,30 @@ def _dias_do_mes_ate(inicio, fim):
 
 
 # --- Termômetro de vendas Olympus (pedido do João, 26/10; reescrito 27/10;
-# CORRIGIDO 30/10 — faltava sexta no dicionário, ver nota abaixo) ----------
-# Substitui o antigo card "Detalhamento do dia · Closer". META DIÁRIA —
-# reseta TODO dia (confirmado com o João: "lembrando que todos os dias ela
-# reseta"), mesmo valor de domingo a quarta, com 2 exceções:
-#   - quinta e sexta -> meta R$200.000
-#   - sábado         -> meta R$100.000
-#   - qualquer outro dia (dom/seg/ter/qua) -> meta R$150.000
-# BUG CORRIGIDO 30/10 (achado pelo João numa sexta: "deixe hoje com 200mil"):
-# o pedido original (26/10) já era "200K pra quinta E sexta", mas ao
-# reescrever pra meta diária (27/10) só quinta ficou no dicionário — sexta
-# caía no padrão de 150K por engano. Sábado já estava certo.
-_TERMOMETRO_OLYMPUS_META_DIARIA = {
-    3: 200_000,  # quinta
-    4: 200_000,  # sexta
-    5: 100_000,  # sábado
-}
-_TERMOMETRO_OLYMPUS_META_PADRAO = 150_000
-_TERMOMETRO_OLYMPUS_DIAS_SEMANA = (
-    "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira",
-    "Sexta-feira", "Sábado", "Domingo",
-)
+# CORRIGIDO 30/10; VIROU EVENTO ESPECIAL 03/11) ----------------------------
+# Até 03/11 o termômetro substituía o "Detalhamento do dia · Closer" todo
+# dia, com meta diária. Pedido do João (03/11, virada do mês): voltar o
+# "Detalhamento do dia · Closer" como padrão, e o termômetro só aparece em
+# janelas especiais (campanha/evento) — a primeira é a semana de 15/11 a
+# 21/11/26, meta R$300.000 pra SEMANA INTEIRA (não é diária — acumula a
+# semana toda, reseta só quando entra numa semana/evento novo). As semanas
+# seguintes ainda não têm valor decidido — só entram aqui quando o João
+# definir; sem entrada nesta lista pra uma data, o card volta a ser o
+# detalhamento de closers.
+_TERMOMETRO_OLYMPUS_EVENTOS = [
+    # (inicio, fim, meta, rótulo) — todos inclusive dos dois lados.
+    (date(2026, 11, 15), date(2026, 11, 21), 300_000, "Semana 15/11 a 21/11"),
+]
 
 
 def _periodo_termometro_olympus(hoje):
-    """Devolve (inicio, fim, meta, rótulo) do período vigente do termômetro
-    — SEMPRE o dia de hoje sozinho (inicio == fim == hoje), já que a meta
-    reseta todo dia. weekday(): segunda=0 ... domingo=6."""
-    dow = hoje.weekday()
-    meta = _TERMOMETRO_OLYMPUS_META_DIARIA.get(dow, _TERMOMETRO_OLYMPUS_META_PADRAO)
-    return hoje, hoje, meta, _TERMOMETRO_OLYMPUS_DIAS_SEMANA[dow]
+    """Devolve (inicio, fim, meta, rótulo) do evento especial vigente pra
+    `hoje`, ou None se não tem nenhum (aí o painel mostra o detalhamento de
+    closers no lugar — ver mostrar_termometro_olympus na view)."""
+    for inicio, fim, meta, rotulo in _TERMOMETRO_OLYMPUS_EVENTOS:
+        if inicio <= hoje <= fim:
+            return inicio, fim, meta, rotulo
+    return None
 
 
 def _vendas_diarias_olympus_mult(deals):
@@ -348,13 +346,14 @@ def _vendas_diarias_olympus_mult(deals):
     return por_dia
 
 
-def _termometro_olympus(deals_realizado_olympus, hoje):
-    """Monta o dict pronto pro template: meta/realizado/% do período vigente
-    (ver _periodo_termometro_olympus), somando dia a dia a partir da MESMA
-    lista de deals que compõe `realizado_olympus` (squad Olympus + extra
-    DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), pra bater com o card "Meta do
-    time" quando o período for o mês inteiro."""
-    inicio, fim, meta, rotulo = _periodo_termometro_olympus(hoje)
+def _termometro_olympus(deals_realizado_olympus, periodo, hoje):
+    """Monta o dict pronto pro template: meta/realizado/% do `periodo`
+    (inicio, fim, meta, rótulo) vigente — ver _periodo_termometro_olympus —
+    somando dia a dia a partir da MESMA lista de deals que compõe
+    `realizado_olympus` (squad Olympus + extra DONOS_VALIDOS_EXTRA_
+    FINANCEIRO_OLYMPUS), pra bater com o card "Meta do time" quando o
+    período for o mês inteiro."""
+    inicio, fim, meta, rotulo = periodo
     vendas_por_dia = _vendas_diarias_olympus_mult(deals_realizado_olympus)
     fim_soma = min(fim, hoje)
     realizado = sum(vendas_por_dia.get(d, 0.0) for d in _dias_do_mes_ate(inicio, fim_soma))
@@ -1099,12 +1098,39 @@ def _calcular_dados(month_str):
         },
     }
 
-    # --- Termômetro de vendas Olympus (substituiu o antigo "Detalhamento do
-    # dia · Closer" a pedido do João, 26/10 — ver _termometro_olympus e
-    # _periodo_termometro_olympus acima pro período/meta da semana). Usa a
-    # MESMA população/fonte de `realizado_olympus` (squad Olympus + extra
-    # DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), só quebrada por dia.
-    termometro_olympus = _termometro_olympus(deals_olympus + deals_extra_financeiro_olympus, hoje)
+    # --- Card da direita: Termômetro de vendas Olympus SE hoje cair numa
+    # janela especial (_TERMOMETRO_OLYMPUS_EVENTOS), senão o Detalhamento do
+    # dia · Closer de sempre (padrão desde 03/11 — ver nota no topo do
+    # arquivo). Termômetro usa a MESMA população/fonte de `realizado_olympus`
+    # (squad Olympus + extra DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), só
+    # quebrada por dia.
+    _periodo_termometro = _periodo_termometro_olympus(hoje)
+    mostrar_termometro_olympus = _periodo_termometro is not None
+    termometro_olympus = None
+    closers_olympus = []
+    if mostrar_termometro_olympus:
+        termometro_olympus = _termometro_olympus(
+            deals_olympus + deals_extra_financeiro_olympus, _periodo_termometro, hoje
+        )
+    else:
+        # Detalhamento Closer (só squad OLYMPUS): meta do dia e vendido hoje
+        # em MULTIPLICADOR (M2-M) — mesma lógica de antes de 26/10, nunca
+        # removida, só parou de ser usada enquanto o termômetro era diário.
+        for p in sorted(membros_olympus, key=lambda p: p["nome"]):
+            nome = p["nome"]
+            alvo_diario = metas_diarias_closer.get(nome)
+            if not alvo_diario:
+                continue
+            info = vendas_do_dia_detalhado.get(nome, {})
+            vendido_hoje_mult = info.get("valor_multiplicador", 0.0)
+            closers_olympus.append({
+                "nome": nome,
+                "alvo_diario": alvo_diario,
+                "vendido_hoje": vendido_hoje_mult,
+                "bateu": vendido_hoje_mult >= alvo_diario,
+                "a_vista_hoje": info.get("a_vista", 0),
+            })
+        closers_olympus.sort(key=lambda c: (-c["vendido_hoje"], c["nome"]))
 
     # --- Destaque do dia: 1º Closer e 1º SDR a bater o Alvo do dia (reseta
     # sozinho na virada da meia-noite).
@@ -1159,7 +1185,9 @@ def _calcular_dados(month_str):
         "primeiro_closer_dia": primeiro_closer_dia,
         "alvo_do_dia_sdr": alvo_do_dia_sdr,
         "detalhe_reunioes_lista": detalhe_reunioes_lista,
+        "mostrar_termometro_olympus": mostrar_termometro_olympus,
         "termometro_olympus": termometro_olympus,
+        "closers_olympus": closers_olympus,
         "destaque_continuo_sdr": destaque_continuo_sdr,
         "destaque_continuo_closer": destaque_continuo_closer,
         "mostrar_destaque_continuo": True,

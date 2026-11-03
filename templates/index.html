@@ -465,16 +465,26 @@
        iguais lado a lado) pra rolar sem "costura" visível no loop (ver
        script no fim do arquivo que preenche com repetições quando tem
        poucas notícias, pra não sobrar "gap" vazio no fim do loop).
-       Velocidade reduzida (pedido do João 03/11, 2ª rodada — 38s ficou
-       rápido demais depois de trocar os ícones pelas fotos) e os ícones
-       de 💰/📅/🚀 viraram a foto (avatar-mini) de quem é a notícia. */
+       Velocidade reduzida (pedido do João 03/11, mais de uma rodada — 38s
+       e depois 64s fixos ainda pareciam rápidos) e os ícones de
+       💰/📅/🚀 viraram a foto (avatar-mini) de quem é a notícia.
+       CORRIGIDO 03/11: a duração fixa (ex.: 64s) faz a VELOCIDADE visual
+       variar com a quantidade de notícias do dia — com mais itens, a
+       faixa fica mais larga e a mesma duração cobre mais pixel, ficando
+       mais rápida; com poucos, mais lenta. O script no fim do arquivo
+       (o mesmo que preenche o "gap" do loop) agora calcula a duração da
+       animação em cima de um ritmo fixo em pixels/segundo, então a
+       velocidade visual fica sempre a mesma não importa quantas notícias
+       tenham no dia. Duração "animation: ... 70s" abaixo é só o valor
+       inicial (antes do JS calcular), pra não começar sem nenhuma
+       animação antes do script rodar. */
   .ticker-wrap { margin-bottom: 10px; }
   .ticker-trilho {
     display: flex; overflow: hidden; white-space: nowrap;
     border: 1px solid var(--border); border-radius: 8px;
     background: rgba(255,255,255,0.03); padding: 7px 0;
   }
-  .ticker-conteudo { display: flex; align-items: center; flex-shrink: 0; animation: tickerRolar 64s linear infinite; }
+  .ticker-conteudo { display: flex; align-items: center; flex-shrink: 0; animation: tickerRolar 70s linear infinite; }
   @keyframes tickerRolar { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
   .ticker-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text); padding: 0 10px; }
   .ticker-icone { font-size: 0.875rem; line-height: 1; }
@@ -1437,6 +1447,18 @@
         clonesNovos.forEach(function (clone) { window.__boardBlackNovemberIniciarFotos(clone); });
         window.__boardBlackNovemberIniciarFotos(espelho);
       }
+
+      // Velocidade fixa em pixels/segundo (pedido do João 03/11, mais de
+      // uma vez: "ainda tá rápido") — uma duração FIXA de animação (ex.:
+      // "70s" no CSS) faz a velocidade visual mudar com a quantidade de
+      // notícias do dia, porque translateX(-100%) percorre a largura da
+      // própria faixa: mais itens = faixa mais larga = mesma duração
+      // cobre mais pixel = parece mais rápido. Calculando a duração em
+      // cima da largura real (já com as repetições acima incluídas) a
+      // velocidade fica sempre a mesma.
+      var PIXELS_POR_SEGUNDO = 28;
+      var duracao = Math.max(principal.scrollWidth / PIXELS_POR_SEGUNDO, 20);
+      faixas.forEach(function (faixa) { faixa.style.animationDuration = duracao + "s"; });
     } catch (e) {
       // nunca deixa essa "firula" derrubar o resto do painel
     }

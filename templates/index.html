@@ -420,24 +420,39 @@
     background: var(--gold); color: #17181c; font-weight: 700; font-size: 0.5625rem;
     border-radius: 999px; padding: 1px 6px;
   }
-  /* Selo "Giro liberado" (pedido do João 03/11; ajustado no mesmo dia —
-     só o PRIMEIRO a bater a meta do dia gira, os demais que baterem depois
-     não) — ao lado do nome de quem já é o primeiro_sdr_dia/primeiro_closer_dia,
-     remetendo à roleta FÍSICA de prêmios que o time gira na mão (confirmado
-     com o João: a roleta em si é manual, isso aqui é só o aviso visual no
-     painel). Mesmo padrão visual do selo "à vista" (pill dourada), com um
-     brilho pulsando pra chamar mais atenção na TV. */
-  .selo-giro {
+  /* Selo "Giro liberado" — carimbo/medalha, só nos cards de DESTAQUE DO DIA
+     (ver macro selo_giro acima pro histórico/contexto completo do pedido).
+     No detalhamento das tabelas o João pediu pra voltar com a pill de texto
+     simples (.selo-giro-pill, logo abaixo) — não o carimbo. */
+  .selo-giro { display: inline-block; vertical-align: middle; flex: none; }
+  .selo-giro--grande { width: 72px; height: 72px; margin-top: 4px; }
+  .selo-giro-svg {
+    width: 100%; height: 100%;
+    animation: seloGiroBrilho 2.2s ease-in-out infinite;
+  }
+  .selo-giro-borda { fill: none; stroke: var(--gold); stroke-width: 6; stroke-dasharray: 2.6 4.6; stroke-linecap: round; }
+  .selo-giro-fundo { fill: #17181c; stroke: var(--gold); stroke-width: 2; }
+  .selo-giro-anel { font: 700 8.6px Arial, sans-serif; letter-spacing: 1.5px; fill: var(--gold); }
+  .selo-giro--grande .selo-giro-icone { font-size: 26px; }
+  @keyframes seloGiroBrilho {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(212,175,55,0.45)); }
+    50% { filter: drop-shadow(0 0 9px rgba(212,175,55,0.9)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .selo-giro-svg { animation: none; } }
+
+  /* Pill de texto "Giro liberado" — volta a ser usada só no detalhamento
+     do dia (tabelas de Closer/SDR), ao lado do nome de quem bateu primeiro. */
+  .selo-giro-pill {
     display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
     background: var(--gold); color: #17181c; font-weight: 700; font-size: 0.5625rem;
     border-radius: 999px; padding: 1px 7px; white-space: nowrap;
-    animation: seloGiroBrilho 1.8s ease-in-out infinite;
+    animation: seloGiroPillBrilho 1.8s ease-in-out infinite;
   }
-  @keyframes seloGiroBrilho {
+  @keyframes seloGiroPillBrilho {
     0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.55); }
     50% { box-shadow: 0 0 7px 1px rgba(212,175,55,0.85); }
   }
-  @media (prefers-reduced-motion: reduce) { .selo-giro { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .selo-giro-pill { animation: none; } }
   .empty { color: var(--muted); font-size: 0.75rem; padding: 4px 0; }
 
   /* --- Ticker de atividade recente (pedido do João 03/11: "dash mais
@@ -586,6 +601,34 @@
     <img class="foto" alt="" data-candidatos='{{ (nome | fotos) | tojson }}'>
   </span>
   {% endmacro %}
+  {% macro selo_giro(arc_id, mini) %}
+  {# Selo "Giro liberado" (pedido do João 03/11; estilo de selo/carimbo
+     oficial pedido no mesmo dia com referência de imagens de selos de
+     qualidade/aprovado) — fica ao lado de quem já é primeiro_sdr_dia /
+     primeiro_closer_dia a bater a meta do dia, remetendo à roleta FÍSICA
+     de prêmios que o time gira na mão (a roleta em si é manual, isso
+     aqui é só o selo visual no painel). Variante "mini" (sem anel de
+     texto, só o ícone) pra caber ao lado do nome nas tabelas; variante
+     grande (com o texto "GIRO LIBERADO" contornando o selo) pros cards
+     de destaque do topo. #}
+  <span class="selo-giro{{ ' selo-giro--mini' if mini else ' selo-giro--grande' }}" title="Giro liberado">
+    <svg viewBox="0 0 100 100" class="selo-giro-svg">
+      {% if not mini %}
+      <defs>
+        <path id="{{ arc_id }}" d="M 50 50 m -32 0 a 32 32 0 1 1 64 0 a 32 32 0 1 1 -64 0" />
+      </defs>
+      {% endif %}
+      <circle cx="50" cy="50" r="47" class="selo-giro-borda" />
+      <circle cx="50" cy="50" r="40" class="selo-giro-fundo" />
+      {% if not mini %}
+      <text class="selo-giro-anel">
+        <textPath href="#{{ arc_id }}" startOffset="3%">★ GIRO LIBERADO ★ GIRO LIBERADO</textPath>
+      </text>
+      {% endif %}
+      <text x="50" y="58" text-anchor="middle" class="selo-giro-icone">🎡</text>
+    </svg>
+  </span>
+  {% endmacro %}
 
   <!-- 1) Destaque do dia: 1º Closer e 1º SDR a bater a Meta do dia (Closer
        comparado com a receita COM MULTIPLICADOR, não bruta). -->
@@ -600,6 +643,7 @@
           <div class="destaque-stat">
             <b>R$ {{ "{:,.0f}".format(primeiro_closer_dia.valor_no_momento).replace(",", ".") }}</b>
           </div>
+          {{ selo_giro("selo-arc-closer-destaque", false) }}
         </div>
       </div>
       {% else %}
@@ -616,6 +660,7 @@
           <div class="destaque-stat">
             <b>{{ primeiro_sdr_dia.quantidade_no_momento }}</b> reuniões
           </div>
+          {{ selo_giro("selo-arc-sdr-destaque", false) }}
         </div>
       </div>
       {% else %}
@@ -809,7 +854,7 @@
         <tbody>
           {% for c in closers_olympus %}
           <tr class="{{ 'linha--bateu' if c.bateu else ('linha--quase' if c.quase else '') }}">
-            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span>{% if primeiro_closer_dia and primeiro_closer_dia.nome == c.nome %}<span class="selo-giro">🎡 Giro liberado</span>{% endif %}</span></td>
+            <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span>{% if primeiro_closer_dia and primeiro_closer_dia.nome == c.nome %}<span class="selo-giro-pill">🎡 Giro liberado</span>{% endif %}</span></td>
             <td>
               <span class="rotulo">Meta do dia</span>
               <span class="valor-rs">R$ {{ "{:,.0f}".format(c.alvo_diario).replace(",", ".") }}</span>
@@ -837,7 +882,7 @@
           {% for a in alvo_do_dia_sdr %}
           <tr class="{{ 'linha--bateu' if a.bateu else ('linha--quase' if a.quase else '') }}">
             <td>
-              <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span>{% if primeiro_sdr_dia and primeiro_sdr_dia.nome == a.nome %}<span class="selo-giro">🎡 Giro liberado</span>{% endif %}</span>
+              <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span>{% if primeiro_sdr_dia and primeiro_sdr_dia.nome == a.nome %}<span class="selo-giro-pill">🎡 Giro liberado</span>{% endif %}</span>
             </td>
             <td>{{ bloco_progresso("Validadas", a.feitas_hoje, a.alvo_diario, a.bateu) }}</td>
             <td>{{ bloco_progresso("Agendadas", a.agendamentos_hoje, a.alvo_diario, a.bateu_agendamento) }}</td>

@@ -117,7 +117,7 @@
   @media (max-width: 900px) {
     .destaque-grid, .continuo-grid, .squads-grid, .detalhe-grid { grid-template-columns: 1fr; }
   }
-  .destaque-card { text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .destaque-card { position: relative; text-align: center; display: flex; flex-direction: column; justify-content: center; }
   .destaque-card .label { color: var(--muted); font-size: 0.75rem; margin-bottom: 6px; }
   .destaque-card .label .trofeu { color: var(--gold); }
   .destaque-pessoa { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 10px; }
@@ -148,7 +148,6 @@
   .avatar .foto.carregada { opacity: 1; }
   .tem-foto .iniciais-fallback { visibility: hidden; }
   .destaque-texto { text-align: left; }
-  .destaque-nome-linha { display: flex; align-items: center; gap: 8px; }
   .destaque-nome { font-weight: 700; font-size: 0.9375rem; }
   .destaque-stat { color: var(--muted); font-size: 0.75rem; }
   .destaque-stat b { color: var(--gold); font-variant-numeric: tabular-nums; }
@@ -426,7 +425,10 @@
      histórico/contexto completo do pedido). No detalhamento das tabelas
      o João pediu pra voltar com a pill de texto simples (.selo-giro-pill,
      logo abaixo) — não esse selo. */
-  .selo-giro { display: inline-block; vertical-align: middle; flex: none; width: 70px; height: 56px; }
+  .selo-giro {
+    display: inline-block; vertical-align: middle; flex: none; width: 70px; height: 56px;
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  }
   .selo-giro-svg {
     width: 100%; height: 100%;
     animation: seloGiroBrilho 2.2s ease-in-out infinite;
@@ -603,11 +605,12 @@
   {% macro selo_giro() %}
   {# Selo "Giro liberado" (pedido do João 03/11; formato final pedido no
      mesmo dia com print de referência — selo recortado tipo "sticker" de
-     bordas onduladas, sem ícone, só o texto "GIRO LIBERADO", AO LADO do
-     nome — não embaixo) — fica ao lado de quem já é primeiro_sdr_dia /
-     primeiro_closer_dia a bater a meta do dia nos cards de Destaque do
-     dia, remetendo à roleta FÍSICA de prêmios que o time gira na mão (a
-     roleta em si é manual, isso aqui é só o selo visual no painel). #}
+     bordas onduladas, sem ícone, só o texto "GIRO LIBERADO"; reposicionado
+     no mesmo dia pro canto direito vazio do card, ver .selo-giro position:
+     absolute) — aparece quando já existe primeiro_sdr_dia / primeiro_closer_dia
+     (alguém bateu a meta do dia) nos cards de Destaque do dia, remetendo à
+     roleta FÍSICA de prêmios que o time gira na mão (a roleta em si é
+     manual, isso aqui é só o selo visual no painel). #}
   <span class="selo-giro" title="Giro liberado">
     <svg viewBox="0 0 100 100" class="selo-giro-svg">
       <path class="selo-giro-forma" d="M 88.0 50.0 L 90.18 51.26 L 92.06 52.65 L 93.4 54.1 L 94.03 55.56 L 93.87 56.95 L 92.92 58.19 L 91.28 59.23 L 89.12 60.05 L 86.69 60.66 L 84.23 61.12 L 82.01 61.52 L 80.23 61.97 L 79.05 62.57 L 78.55 63.43 L 78.7 64.62 L 79.4 66.16 L 80.49 68.03 L 81.74 70.14 L 82.93 72.38 L 83.83 74.58 L 84.27 76.59 L 84.13 78.24 L 83.36 79.41 L 81.99 80.04 L 80.12 80.12 L 77.91 79.72 L 75.53 78.96 L 73.19 78.03 L 71.05 77.14 L 69.24 76.49 L 67.85 76.27 L 66.89 76.61 L 66.31 77.57 L 66.02 79.15 L 65.91 81.23 L 65.83 83.65 L 65.65 86.18 L 65.27 88.57 L 64.61 90.59 L 63.65 92.02 L 62.41 92.73 L 60.95 92.66 L 59.35 91.84 L 57.71 90.4 L 56.1 88.54 L 54.61 86.49 L 53.26 84.54 L 52.07 82.93 L 51.0 81.87 L 50.0 81.5 L 49.0 81.87 L 47.93 82.93 L 46.74 84.54 L 45.39 86.49 L 43.9 88.54 L 42.29 90.4 L 40.65 91.84 L 39.05 92.66 L 37.59 92.73 L 36.35 92.02 L 35.39 90.59 L 34.73 88.57 L 34.35 86.18 L 34.17 83.65 L 34.09 81.23 L 33.98 79.15 L 33.69 77.57 L 33.11 76.61 L 32.15 76.27 L 30.76 76.49 L 28.95 77.14 L 26.81 78.03 L 24.47 78.96 L 22.09 79.72 L 19.88 80.12 L 18.01 80.04 L 16.64 79.41 L 15.87 78.24 L 15.73 76.59 L 16.17 74.58 L 17.07 72.38 L 18.26 70.14 L 19.51 68.03 L 20.6 66.16 L 21.3 64.62 L 21.45 63.43 L 20.95 62.57 L 19.77 61.97 L 17.99 61.52 L 15.77 61.12 L 13.31 60.66 L 10.88 60.05 L 8.72 59.23 L 7.08 58.19 L 6.13 56.95 L 5.97 55.56 L 6.6 54.1 L 7.94 52.65 L 9.82 51.26 L 12.0 50.0 L 14.22 48.88 L 16.21 47.87 L 17.74 46.95 L 18.63 46.04 L 18.81 45.06 L 18.27 43.95 L 17.11 42.65 L 15.51 41.14 L 13.7 39.46 L 11.95 37.64 L 10.5 35.78 L 9.57 33.99 L 9.3 32.39 L 9.78 31.07 L 10.98 30.12 L 12.8 29.55 L 15.07 29.34 L 17.57 29.42 L 20.07 29.66 L 22.35 29.91 L 24.22 30.0 L 25.57 29.79 L 26.35 29.15 L 26.59 28.01 L 26.38 26.38 L 25.88 24.32 L 25.27 21.95 L 24.75 19.47 L 24.47 17.09 L 24.57 15.0 L 25.13 13.41 L 26.16 12.44 L 27.62 12.16 L 29.41 12.55 L 31.41 13.51 L 33.47 14.88 L 35.47 16.43 L 37.29 17.91 L 38.87 19.08 L 40.17 19.74 L 41.21 19.75 L 42.05 19.05 L 42.77 17.67 L 43.47 15.75 L 44.21 13.47 L 45.08 11.09 L 46.11 8.87 L 47.3 7.08 L 48.61 5.91 L 50.0 5.5 L 51.39 5.91 L 52.7 7.08 L 53.89 8.87 L 54.92 11.09 L 55.79 13.47 L 56.53 15.75 L 57.23 17.67 L 57.95 19.05 L 58.79 19.75 L 59.83 19.74 L 61.13 19.08 L 62.71 17.91 L 64.53 16.43 L 66.53 14.88 L 68.59 13.51 L 70.59 12.55 L 72.38 12.16 L 73.84 12.44 L 74.87 13.41 L 75.43 15.0 L 75.53 17.09 L 75.25 19.47 L 74.73 21.95 L 74.12 24.32 L 73.62 26.38 L 73.41 28.01 L 73.65 29.15 L 74.43 29.79 L 75.78 30.0 L 77.65 29.91 L 79.93 29.66 L 82.43 29.42 L 84.93 29.34 L 87.2 29.55 L 89.02 30.12 L 90.22 31.07 L 90.7 32.39 L 90.43 33.99 L 89.5 35.78 L 88.05 37.64 L 86.3 39.46 L 84.49 41.14 L 82.89 42.65 L 81.73 43.95 L 81.19 45.06 L 81.37 46.04 L 82.26 46.95 L 83.79 47.87 L 85.78 48.88 Z" />
@@ -626,15 +629,13 @@
       <div class="destaque-pessoa">
         {{ avatar(primeiro_closer_dia.nome, "avatar") }}
         <div class="destaque-texto">
-          <div class="destaque-nome-linha">
-            <div class="destaque-nome">{{ primeiro_closer_dia.nome }}</div>
-            {{ selo_giro() }}
-          </div>
+          <div class="destaque-nome">{{ primeiro_closer_dia.nome }}</div>
           <div class="destaque-stat">
             <b>R$ {{ "{:,.0f}".format(primeiro_closer_dia.valor_no_momento).replace(",", ".") }}</b>
           </div>
         </div>
       </div>
+      {{ selo_giro() }}
       {% else %}
       <div class="destaque-vazio">-</div>
       {% endif %}
@@ -645,15 +646,13 @@
       <div class="destaque-pessoa">
         {{ avatar(primeiro_sdr_dia.nome, "avatar") }}
         <div class="destaque-texto">
-          <div class="destaque-nome-linha">
-            <div class="destaque-nome">{{ primeiro_sdr_dia.nome }}</div>
-            {{ selo_giro() }}
-          </div>
+          <div class="destaque-nome">{{ primeiro_sdr_dia.nome }}</div>
           <div class="destaque-stat">
             <b>{{ primeiro_sdr_dia.quantidade_no_momento }}</b> reuniões
           </div>
         </div>
       </div>
+      {{ selo_giro() }}
       {% else %}
       <div class="destaque-vazio">-</div>
       {% endif %}
@@ -1346,6 +1345,37 @@
       });
 
       try { localStorage.setItem(chaveMes, JSON.stringify(atual)); } catch (e) {}
+    } catch (e) {
+      // nunca deixa essa "firula" derrubar o resto do painel
+    }
+  })();
+
+  // Ticker de atividade recente — preenche o "gap" vazio no fim do loop
+  // (pedido do João 03/11): com poucas notícias no dia, as duas faixas
+  // duplicadas (pensadas pro scroll sem costura) ficavam mais estreitas
+  // que a tela, sobrando um trecho em branco antes de repetir. Aqui a
+  // gente repete os itens da faixa principal até ela ficar mais larga
+  // que o container e só então espelha o resultado na faixa escondida —
+  // sem isso nenhum item novo, só garante que sempre tem conteúdo
+  // passando, não importa se o dia tem 1 notícia ou 15.
+  (function () {
+    try {
+      var trilho = document.querySelector(".ticker-trilho");
+      if (!trilho) return;
+      var faixas = trilho.querySelectorAll(".ticker-conteudo");
+      if (faixas.length < 2) return;
+      var principal = faixas[0];
+      var espelho = faixas[1];
+      if (!principal.children.length) return;
+
+      var larguraAlvo = trilho.clientWidth || window.innerWidth;
+      var itensOriginais = Array.prototype.slice.call(principal.children);
+      var tentativas = 0;
+      while (principal.scrollWidth < larguraAlvo * 1.1 && tentativas < 30) {
+        itensOriginais.forEach(function (el) { principal.appendChild(el.cloneNode(true)); });
+        tentativas++;
+      }
+      espelho.innerHTML = principal.innerHTML;
     } catch (e) {
       // nunca deixa essa "firula" derrubar o resto do painel
     }

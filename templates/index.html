@@ -59,9 +59,15 @@
   header::before {
     content: "BLACK NOVEMBER";
     position: absolute;
-    right: -0.02em; top: 50%; transform: translateY(-50%);
+    /* Empurrado pro canto inferior direito (pedido do João 03/11: "deixe
+       mais para o canto e desça um pouco, não dá pra ver direito") —
+       antes ficava centralizado verticalmente (top:50%) e, com o header
+       tendo "overflow: hidden", a metade de cima do texto cortava. Sem
+       centralizar (ancorado pelo bottom), ele fica inteiro visível,
+       encostado no canto. */
+    right: 0.4em; bottom: -6px; top: auto; transform: none;
     font-family: "Anton", Impact, "Arial Narrow", sans-serif;
-    font-size: 2.75rem;
+    font-size: 2.1rem;
     letter-spacing: 2px;
     line-height: 1;
     white-space: nowrap;

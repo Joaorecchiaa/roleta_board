@@ -216,6 +216,23 @@
     100% { transform: translateX(350%); }
   }
   .squad-barra-fill.destaque { background: linear-gradient(90deg, var(--green), #5be0a0); box-shadow: 0 0 8px rgba(62, 207, 142, 0.55); }
+  /* Marcos de 25/50/75/100% na barra (pedido do João 03/11) — linha fina
+     por cima do preenchimento; o de 100% fica um pouco pra dentro (não
+     bem na borda) porque .squad-barra tem overflow:hidden e cortaria ele
+     pela metade se ficasse exatamente em left:100%. */
+  .squad-marco {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: rgba(0,0,0,0.4); z-index: 1; pointer-events: none;
+  }
+  /* "Pulso" ao ultrapassar um marco (JS detecta via localStorage e soma
+     essa classe por ~1.6s — ver script no fim do body). */
+  .squad-barra.pulso-marco { animation: squadMarcoPulso 1.6s ease-out; }
+  @keyframes squadMarcoPulso {
+    0% { box-shadow: 0 0 0 0 rgba(212,175,55,0.65); }
+    60% { box-shadow: 0 0 0 10px rgba(212,175,55,0); }
+    100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .squad-barra.pulso-marco { animation: none; } }
   .squad-pct { flex-shrink: 0; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
   .squad-pct b { color: var(--gold); }
   .squad-pct-detalhe { flex-basis: 100%; font-size: 0.625rem; color: var(--muted); margin-top: 2px; }
@@ -337,6 +354,21 @@
     box-shadow: inset 3px 0 0 var(--green);
   }
   .tabela-detalhe tr.linha--bateu .nome { color: var(--green); font-weight: 800; }
+  /* "Quase lá" (pedido do João 03/11) — ainda não bateu, mas já está a
+     15% ou menos de bater (>= 85% da meta do dia): borda pulsando
+     amarela, diferente do verde de quem já bateu. */
+  .tabela-detalhe tr.linha--quase td {
+    box-shadow: inset 3px 0 0 var(--gold);
+    animation: linhaQuasePulsar 1.6s ease-in-out infinite;
+  }
+  .tabela-detalhe tr.linha--quase .nome { color: var(--gold); font-weight: 700; }
+  @keyframes linhaQuasePulsar {
+    0%, 100% { background: rgba(212,175,55,0.04); }
+    50% { background: rgba(212,175,55,0.18); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tabela-detalhe tr.linha--quase td { animation: none; background: rgba(212,175,55,0.1); }
+  }
   .col-nome { width: 34%; }
   .nome-grupo { display: inline-flex; align-items: center; gap: 6px; }
   .avatar-mini {
@@ -605,7 +637,17 @@
     <div class="squad-nome">{{ nome_squad }}</div>
     <div class="squad-bar-wrap">
     {% if dado and dado.atingimento is not none %}
-    <div class="squad-barra"><div class="squad-barra-fill{{ ' destaque' if destacado else '' }}" style="width: {{ [dado.atingimento, 100] | min }}%;"></div></div>
+    <!-- Marcos de 25/50/75/100% (pedido do João 03/11) — id/data-atingimento
+         só pro script do fim da página detectar quando um marco foi
+         ultrapassado desde o último carregamento (localStorage por mês,
+         mesmo espírito da celebração) e disparar o "pulso". -->
+    <div class="squad-barra" id="squad-barra-{{ nome_squad | lower }}" data-atingimento="{{ dado.atingimento }}">
+      <div class="squad-barra-fill{{ ' destaque' if destacado else '' }}" style="width: {{ [dado.atingimento, 100] | min }}%;"></div>
+      <span class="squad-marco" style="left: 25%;"></span>
+      <span class="squad-marco" style="left: 50%;"></span>
+      <span class="squad-marco" style="left: 75%;"></span>
+      <span class="squad-marco" style="left: calc(100% - 1px);"></span>
+    </div>
     <div class="squad-pct"><b>{{ "%.1f"|format(dado.atingimento)|replace(".", ",") }}%</b> do mês</div>
     {% if dado.financeiro_pct is defined and dado.financeiro_pct is not none %}
     <div class="squad-pct-detalhe oculto">
@@ -727,7 +769,7 @@
         <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
         <tbody>
           {% for c in closers_olympus %}
-          <tr class="{{ 'linha--bateu' if c.bateu else '' }}">
+          <tr class="{{ 'linha--bateu' if c.bateu else ('linha--quase' if c.quase else '') }}">
             <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
             <td>
               <span class="rotulo">Meta do dia</span>
@@ -754,7 +796,7 @@
         <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
         <tbody>
           {% for a in alvo_do_dia_sdr %}
-          <tr class="{{ 'linha--bateu' if a.bateu else '' }}">
+          <tr class="{{ 'linha--bateu' if a.bateu else ('linha--quase' if a.quase else '') }}">
             <td>
               <span class="nome-grupo">{{ avatar_mini(a.nome) }}<span class="nome">{{ a.nome }}</span></span>
             </td>
@@ -1195,6 +1237,44 @@
       (function (el) { setTimeout(function () { el.remove(); }, 5200); })(c);
     }
   }
+
+  // Pulso ao ultrapassar um marco de 25/50/75/100% na barra de "Meta do
+  // time" (pedido do João 03/11) — mesma ideia da celebração: compara o
+  // % atual com o que ficou salvo no localStorage (chave por MÊS, não por
+  // dia, já que o atingimento é acumulado do mês inteiro) e, se cruzou
+  // algum marco desde o último carregamento, soma a classe "pulso-marco"
+  // por ~1.6s. Zero estado no servidor, reseta sozinho na virada do mês.
+  (function () {
+    try {
+      var MARCOS = [25, 50, 75, 100];
+      var chaveMes = "boardBlackNovemberMarcosSquad_" + {{ month | tojson }};
+      var anterior = {};
+      try { anterior = JSON.parse(localStorage.getItem(chaveMes) || "{}") || {}; } catch (e) { anterior = {}; }
+
+      var barras = document.querySelectorAll(".squad-barra[data-atingimento]");
+      var atual = {};
+      barras.forEach(function (barra) {
+        var squad = barra.id.replace("squad-barra-", "");
+        var pct = parseFloat(barra.getAttribute("data-atingimento")) || 0;
+        atual[squad] = pct;
+
+        var pctAnterior = anterior[squad];
+        if (typeof pctAnterior === "number") {
+          var cruzouAlgum = MARCOS.some(function (marco) {
+            return pctAnterior < marco && pct >= marco;
+          });
+          if (cruzouAlgum) {
+            barra.classList.add("pulso-marco");
+            setTimeout(function () { barra.classList.remove("pulso-marco"); }, 1700);
+          }
+        }
+      });
+
+      try { localStorage.setItem(chaveMes, JSON.stringify(atual)); } catch (e) {}
+    } catch (e) {
+      // nunca deixa essa "firula" derrubar o resto do painel
+    }
+  })();
 </script>
 </body>
 </html>

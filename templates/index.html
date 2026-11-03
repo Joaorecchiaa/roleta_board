@@ -1098,7 +1098,21 @@
           img.classList.add("carregada");
           if (img.parentElement) img.parentElement.classList.add("tem-foto");
         });
-        tentarProximaFoto(img);
+        // CORRIGIDO 03/11 (2ª rodada — ainda aparecia foto quebrada em
+        // alguns itens do ticker): um clone pode ser feito ENQUANTO o
+        // original ainda está no meio de uma tentativa (src já setado,
+        // pedido em andamento, sem ter dado erro nem sucesso ainda).
+        // Antes a gente chamava tentarProximaFoto de qualquer jeito, o
+        // que PULAVA esse candidato em andamento (podia ser justo o que
+        // ia dar certo) e ia direto pro próximo — às vezes sobrando num
+        // candidato que carrega como imagem inválida/quebrada. Agora só
+        // força a próxima tentativa se o <img> ainda não tem nenhum src;
+        // se já tem (herdado do original), deixa ele terminar essa
+        // tentativa sozinho — o listener de "error" que acabou de ser
+        // ligado cuida de avançar se ela falhar.
+        if (!img.getAttribute("src")) {
+          tentarProximaFoto(img);
+        }
       });
     }
     window.__boardBlackNovemberIniciarFotos = iniciarFotos;

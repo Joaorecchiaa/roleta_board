@@ -32,6 +32,22 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
     liderança é recalculada do zero a cada request, simulando dia a dia os
     números já computados — não depende mais de arquivo em disco, então
     funciona igual local e na Vercel.
+  - "Dash mais dinâmico" (pedido do João, 03/11) — três coisas novas, só
+    visuais, sem regra de negócio nova:
+      1) Brilho/destaque nos cards de quem já lidera (Destaque do dia e
+         Destaque Contínuo), classe `tem-lider` só quando tem gente de
+         verdade no card.
+      2) Linha em destaque (não mais apagada) de quem bateu a meta do dia
+         nas tabelas de Detalhamento — classe `linha--bateu`, agora
+         também na tabela de Closer (só tinha na de SDR antes).
+      3) Ticker de atividade recente (reuniões validadas + vendas de hoje,
+         `_atividades_recentes_hoje`) rolando acima do rodapé.
+      4) Celebração (aviso + confete) quando aparece um NOVO 1º SDR/Closer
+         do dia — só no cliente (JS no fim do HTML), usando localStorage
+         com chave por dia (`hoje_iso`) pra não repetir a cada F5/reload e
+         resetar sozinho todo dia, sem precisar de nada no servidor.
+    OBS: a roleta de prêmios que o time usa quando bate meta é um processo
+    MANUAL/físico deles (confirmado com o João) — não faz parte do painel.
 
 Rodar local:
     pip install -r requirements.txt
@@ -423,6 +439,55 @@ def _valor_multiplicador(deal):
     return m2_faturamento_closer.multiplicador([deal])
 
 
+def _momento_venda_seguro(deal, hoje):
+    """Tenta extrair um datetime de `deal['won_time']` só pra ORDENAR o
+    ticker de atividade recente (pedido do João 03/11) — o formato exato
+    que o Pipedrive manda nesse campo não está documentado/confirmado
+    aqui, então isso NUNCA pode derrubar o carregamento da página: se não
+    conseguir entender o formato, devolve meia-noite de hoje (vai pro fim
+    da lista, mas a página continua de pé)."""
+    bruto = deal.get("won_time")
+    if not bruto:
+        return datetime.combine(hoje, datetime.min.time())
+    texto_bruto = str(bruto).strip().replace("T", " ").replace("Z", "")
+    for tamanho, fmt in ((19, "%Y-%m-%d %H:%M:%S"), (16, "%Y-%m-%d %H:%M"), (10, "%Y-%m-%d")):
+        try:
+            return datetime.strptime(texto_bruto[:tamanho], fmt)
+        except ValueError:
+            continue
+    return datetime.combine(hoje, datetime.min.time())
+
+
+def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm, hoje, limite=15):
+    """Ticker de 'atividade recente' (pedido do João 03/11: 'deixar o dash
+    mais dinâmico') — junta reuniões validadas e vendas de HOJE (só squad
+    OLYMPUS pras vendas, mesma elegibilidade do resto do painel) numa
+    lista só, mais recente primeiro. Não é regra de negócio nova: só
+    reaproveita dado que o resto do painel já buscou/calculou (zero GET
+    extra ao Pipedrive)."""
+    itens = []
+    for ev in eventos_validados_hoje:
+        if not ev["sdr"]:
+            continue
+        itens.append({
+            "momento": ev["momento"],
+            "icone": "📅",
+            "texto": f"{ev['sdr']} validou uma reunião",
+        })
+    for deal in deals_won_hoje:
+        nome = usuarios.get(crn_texto.dono_id(deal))
+        if not nome or crn_texto.norm(nome) not in membros_olympus_norm:
+            continue
+        valor = _valor_multiplicador(deal)
+        itens.append({
+            "momento": _momento_venda_seguro(deal, hoje),
+            "icone": "💰",
+            "texto": f"{nome} fechou uma venda de R$ {valor:,.0f}".replace(",", "."),
+        })
+    itens.sort(key=lambda item: item["momento"], reverse=True)
+    return itens[:limite]
+
+
 def _contar_agendamentos_hoje(activities, hoje, usuarios):
     """Conta quantos agendamentos cada pessoa fez hoje (atividade CRIADA
     hoje — add_time em Brasília, pro próprio dia OU pra outro dia) — regra
@@ -798,6 +863,10 @@ def _calcular_dados(month_str):
     membros_olympus_norm = {p["nome_norm"] for p in membros_olympus}
 
     vendas_do_dia_detalhado = _vendas_do_dia_detalhado(deals_won_hoje, usuarios, membros_olympus_norm)
+
+    atividades_recentes = _atividades_recentes_hoje(
+        eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm, hoje,
+    )
 
     # R2 (papel) com nomes como aparecem na Colab deste mês (pro resto do
     # painel usar nome "de exibição", não nome_norm) — SDR_EXCLUIDOS
@@ -1192,6 +1261,8 @@ def _calcular_dados(month_str):
         "destaque_continuo_closer": destaque_continuo_closer,
         "mostrar_destaque_continuo": True,
         "hoje": hoje.strftime("%d/%m/%Y"),
+        "hoje_iso": hoje.isoformat(),
+        "atividades_recentes": atividades_recentes,
         "avisos": avisos,
         # Carimbo de parâmetros com a versão da CRN (regra 4 da migração)
         # — crn.versao() NÃO EXISTE oficialmente na biblioteca (só

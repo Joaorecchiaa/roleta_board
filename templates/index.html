@@ -351,16 +351,21 @@
      ele quer agora). */
   .tabela-detalhe tr.linha--bateu td {
     background: linear-gradient(90deg, rgba(62,207,142,0.16), rgba(62,207,142,0.02));
-    box-shadow: inset 3px 0 0 var(--green);
   }
+  /* A barrinha lateral só na 1ª célula da linha (pedido do João 03/11:
+     "deixa continuo, sem essas duas divisorias ao lado de 'Validadas' e
+     'Agendadas'" — antes o box-shadow ia em TODO td da linha, criando uma
+     barrinha repetida em cada coluna em vez de uma só, contínua, no
+     início da linha). */
+  .tabela-detalhe tr.linha--bateu td:first-child { box-shadow: inset 3px 0 0 var(--green); }
   .tabela-detalhe tr.linha--bateu .nome { color: var(--green); font-weight: 800; }
   /* "Quase lá" (pedido do João 03/11) — ainda não bateu, mas já está a
      15% ou menos de bater (>= 85% da meta do dia): borda pulsando
      amarela, diferente do verde de quem já bateu. */
   .tabela-detalhe tr.linha--quase td {
-    box-shadow: inset 3px 0 0 var(--gold);
     animation: linhaQuasePulsar 1.6s ease-in-out infinite;
   }
+  .tabela-detalhe tr.linha--quase td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
   .tabela-detalhe tr.linha--quase .nome { color: var(--gold); font-weight: 700; }
   @keyframes linhaQuasePulsar {
     0%, 100% { background: rgba(212,175,55,0.04); }

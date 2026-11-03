@@ -469,32 +469,77 @@ def _sem_fuso(momento):
     return momento.replace(tzinfo=None) if momento.tzinfo is not None else momento
 
 
-def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm, hoje, limite=15):
-    """Ticker de 'atividade recente' (pedido do João 03/11: 'deixar o dash
-    mais dinâmico') — junta reuniões validadas e vendas de HOJE (só squad
-    OLYMPUS pras vendas, mesma elegibilidade do resto do painel) numa
-    lista só, mais recente primeiro. Não é regra de negócio nova: só
-    reaproveita dado que o resto do painel já buscou/calculou (zero GET
-    extra ao Pipedrive)."""
+def _atividades_recentes_hoje(eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm,
+                               alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer, hoje, limite=15):
+    """'Notícias' do dia pro ticker (pedido do João 03/11; REFEITO 03/11 —
+    o 1º formato era 1 item por evento cru; o João pediu pra virar
+    'notícias' mais prontas, com 3 tipos):
+      1) Vendas do dia — 1 item por negócio ganho hoje (só squad OLYMPUS).
+      2) SDR — 1 item por SDR com reunião validada hoje: 'agendou N a mais
+         que a meta' quando já passou do agendamento do dia, senão 'teve N
+         reuniões validadas no dia'.
+      3) Closer — 1 item por Closer que já vendeu ACIMA da meta do dia:
+         'vendeu R$ X a mais que a meta hoje'.
+    Não é regra de negócio nova: só reaproveita dado que o resto do painel
+    (alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer) já
+    buscou/calculou — zero GET extra ao Pipedrive."""
     itens = []
-    for ev in eventos_validados_hoje:
-        if not ev["sdr"]:
-            continue
-        itens.append({
-            "momento": _sem_fuso(ev["momento"]),
-            "icone": "📅",
-            "texto": f"{ev['sdr']} validou uma reunião",
-        })
+
+    # 1) Vendas do dia — guarda também o momento mais recente de cada
+    # Closer, pra poder ordenar o item de "vendeu X a mais que a meta" (3)
+    # junto com o resto, em vez de jogar ele sempre no topo/fim.
+    momento_por_closer = {}
     for deal in deals_won_hoje:
         nome = usuarios.get(crn_texto.dono_id(deal))
         if not nome or crn_texto.norm(nome) not in membros_olympus_norm:
             continue
         valor = _valor_multiplicador(deal)
+        momento = _sem_fuso(_momento_venda_seguro(deal, hoje))
         itens.append({
-            "momento": _sem_fuso(_momento_venda_seguro(deal, hoje)),
+            "momento": momento,
             "icone": "💰",
-            "texto": f"{nome} fechou uma venda de R$ {valor:,.0f}".replace(",", "."),
+            "texto": f"{nome} vendeu R$ {valor:,.0f} hoje".replace(",", "."),
         })
+        if momento_por_closer.get(nome) is None or momento > momento_por_closer[nome]:
+            momento_por_closer[nome] = momento
+
+    # 2) SDR — mesma ideia: guarda o momento mais recente de cada SDR.
+    momento_por_sdr = {}
+    for ev in eventos_validados_hoje:
+        if not ev["sdr"]:
+            continue
+        momento = _sem_fuso(ev["momento"])
+        if momento_por_sdr.get(ev["sdr"]) is None or momento > momento_por_sdr[ev["sdr"]]:
+            momento_por_sdr[ev["sdr"]] = momento
+    inicio_do_dia = datetime.combine(hoje, datetime.min.time())
+    for sdr in alvo_do_dia_sdr:
+        if sdr["feitas_hoje"] <= 0:
+            continue
+        momento = momento_por_sdr.get(sdr["nome"], inicio_do_dia)
+        if sdr["agendamentos_hoje"] > sdr["alvo_diario"]:
+            diferenca = sdr["agendamentos_hoje"] - sdr["alvo_diario"]
+            plural = "reunião" if diferenca == 1 else "reuniões"
+            texto = f"{sdr['nome']} agendou {diferenca} {plural} a mais que a meta hoje"
+        else:
+            plural = "reunião validada" if sdr["feitas_hoje"] == 1 else "reuniões validadas"
+            texto = f"{sdr['nome']} teve {sdr['feitas_hoje']} {plural} no dia"
+        itens.append({"momento": momento, "icone": "📅", "texto": texto})
+
+    # 3) Closer acima da meta do dia.
+    for nome, info in vendas_do_dia_detalhado.items():
+        meta = metas_diarias_closer.get(nome)
+        if not meta:
+            continue
+        diferenca = info["valor_multiplicador"] - meta
+        if diferenca <= 0:
+            continue
+        momento = momento_por_closer.get(nome, inicio_do_dia)
+        itens.append({
+            "momento": momento,
+            "icone": "🚀",
+            "texto": f"{nome} vendeu R$ {diferenca:,.0f} a mais que a meta hoje".replace(",", "."),
+        })
+
     itens.sort(key=lambda item: item["momento"], reverse=True)
     return itens[:limite]
 
@@ -875,10 +920,6 @@ def _calcular_dados(month_str):
 
     vendas_do_dia_detalhado = _vendas_do_dia_detalhado(deals_won_hoje, usuarios, membros_olympus_norm)
 
-    atividades_recentes = _atividades_recentes_hoje(
-        eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm, hoje,
-    )
-
     # R2 (papel) com nomes como aparecem na Colab deste mês (pro resto do
     # painel usar nome "de exibição", não nome_norm) — SDR_EXCLUIDOS
     # continua sendo um ajuste do painel por cima do papel oficial.
@@ -954,6 +995,11 @@ def _calcular_dados(month_str):
         if not meta or not meta.get("meta_financeira") or not dias_uteis_mes:
             continue
         metas_diarias_closer[nome] = meta["meta_financeira"] / dias_uteis_mes
+
+    atividades_recentes = _atividades_recentes_hoje(
+        eventos_validados_hoje, deals_won_hoje, usuarios, membros_olympus_norm,
+        alvo_do_dia_sdr, vendas_do_dia_detalhado, metas_diarias_closer, hoje,
+    )
 
     # --- Meta do time: SNIPER e OLYMPUS.
     #

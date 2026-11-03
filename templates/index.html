@@ -141,6 +141,18 @@
   .destaque-stat b { color: var(--gold); font-variant-numeric: tabular-nums; }
   .destaque-vazio { color: var(--muted); font-size: 1rem; padding: 4px 0; }
 
+  /* Brilho em quem lidera (pedido do João 03/11: "dash mais dinâmico") —
+     só acende quando o card tem gente de verdade (não no "-" vazio). */
+  @keyframes liderBrilho {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(212,175,55,0.25), 0 0 12px rgba(212,175,55,0.2); }
+    50% { box-shadow: 0 0 0 1px rgba(212,175,55,0.45), 0 0 26px rgba(212,175,55,0.5); }
+  }
+  .destaque-card.tem-lider { border-color: var(--gold); animation: liderBrilho 2.8s ease-in-out infinite; }
+  .continuo-card.tem-lider { animation: liderBrilho 3.2s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .destaque-card.tem-lider, .continuo-card.tem-lider { animation: none; }
+  }
+
   /* --- Destaque contínuo (recorde até alguém bater) ---------------------- */
   .continuo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .continuo-card { text-align: center; border-color: var(--gold); position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; }
@@ -316,7 +328,15 @@
   .tabela-detalhe { width: 100%; border-collapse: collapse; }
   .tabela-detalhe td { padding: 4px 5px; border-bottom: 1px solid var(--border); font-size: 0.75rem; vertical-align: middle; }
   .tabela-detalhe tr:last-child td { border-bottom: none; }
-  .tabela-detalhe tr.linha--bateu td { opacity: 0.85; }
+  /* Destaque (não mais "apagado") pra quem já bateu a meta do dia — pedido
+     do João 03/11: "deixa a linha do nome da pessoa no detalhamento em
+     destaque" (antes isso deixava a linha meio apagada, o oposto do que
+     ele quer agora). */
+  .tabela-detalhe tr.linha--bateu td {
+    background: linear-gradient(90deg, rgba(62,207,142,0.16), rgba(62,207,142,0.02));
+    box-shadow: inset 3px 0 0 var(--green);
+  }
+  .tabela-detalhe tr.linha--bateu .nome { color: var(--green); font-weight: 800; }
   .col-nome { width: 34%; }
   .nome-grupo { display: inline-flex; align-items: center; gap: 6px; }
   .avatar-mini {
@@ -348,6 +368,46 @@
     border-radius: 999px; padding: 1px 6px;
   }
   .empty { color: var(--muted); font-size: 0.75rem; padding: 4px 0; }
+
+  /* --- Ticker de atividade recente (pedido do João 03/11: "dash mais
+       dinâmico") — faixa rolante com reuniões validadas e vendas de hoje,
+       logo acima do rodapé. Trilho duplicado (dois .ticker-conteudo
+       iguais lado a lado) pra rolar sem "costura" visível no loop. */
+  .ticker-wrap { margin-bottom: 10px; }
+  .ticker-trilho {
+    display: flex; overflow: hidden; white-space: nowrap;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: rgba(255,255,255,0.03); padding: 7px 0;
+  }
+  .ticker-conteudo { display: flex; align-items: center; flex-shrink: 0; animation: tickerRolar 38s linear infinite; }
+  @keyframes tickerRolar { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  .ticker-item { font-size: 0.75rem; color: var(--text); padding: 0 10px; }
+  .ticker-icone { margin-right: 4px; }
+  .ticker-sep { color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { .ticker-conteudo { animation: none; } }
+
+  /* --- Celebração ao bater meta (pedido do João 03/11) — aviso + confete
+       disparados só no cliente (JS no fim da página), sem nada novo do
+       servidor. */
+  .celebracao-aviso {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(90deg, var(--gold), #f0d888);
+    color: #1a1406; font-weight: 800; font-size: 0.9375rem;
+    padding: 10px 22px; border-radius: 999px; z-index: 999;
+    box-shadow: 0 6px 24px rgba(212,175,55,0.45);
+    animation: celebracaoEntrar 0.4s ease-out;
+  }
+  @keyframes celebracaoEntrar { 0% { opacity: 0; transform: translate(-50%, -16px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
+  .confete {
+    position: fixed; top: -12px; width: 8px; height: 14px; z-index: 998;
+    opacity: 0.9; animation-name: confeteCair; animation-timing-function: ease-in;
+    animation-iteration-count: 1;
+  }
+  @keyframes confeteCair {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+    100% { transform: translateY(105vh) rotate(540deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .confete { display: none; } }
 
   /* --- Oculto a pedido (07/10): taxas Financeiro/Reuniões por baixo da
        barra da Meta do time — fica só o % final, sem poluir. Classe em
@@ -459,7 +519,7 @@
   <!-- 1) Destaque do dia: 1º Closer e 1º SDR a bater a Meta do dia (Closer
        comparado com a receita COM MULTIPLICADOR, não bruta). -->
   <div class="secao destaque-grid">
-    <div class="card destaque-card">
+    <div class="card destaque-card{{ ' tem-lider' if primeiro_closer_dia else '' }}">
       <div class="label"><span class="trofeu">🏆</span> 1º Closer a bater a Meta do dia</div>
       {% if primeiro_closer_dia %}
       <div class="destaque-pessoa">
@@ -475,7 +535,7 @@
       <div class="destaque-vazio">-</div>
       {% endif %}
     </div>
-    <div class="card destaque-card">
+    <div class="card destaque-card{{ ' tem-lider' if primeiro_sdr_dia else '' }}">
       <div class="label"><span class="trofeu">🏆</span> 1º SDR a bater a Meta do dia</div>
       {% if primeiro_sdr_dia %}
       <div class="destaque-pessoa">
@@ -504,7 +564,7 @@
   <div class="secao">
     <h2 class="titulo-branco">Destaque contínuo</h2>
     <div class="continuo-grid">
-      <div class="card continuo-card">
+      <div class="card continuo-card{{ ' tem-lider' if destaque_continuo_closer else '' }}">
         {% if destaque_continuo_closer %}
         <div class="avatar-continuo-wrap">
           {{ avatar(destaque_continuo_closer.nome, "avatar-continuo") }}
@@ -519,7 +579,7 @@
         <div class="continuo-vazio">Valor bruto acumulado no mês: -</div>
         {% endif %}
       </div>
-      <div class="card continuo-card">
+      <div class="card continuo-card{{ ' tem-lider' if destaque_continuo_sdr else '' }}">
         {% if destaque_continuo_sdr %}
         <div class="avatar-continuo-wrap">
           {{ avatar(destaque_continuo_sdr.nome, "avatar-continuo") }}
@@ -667,7 +727,7 @@
         <colgroup><col class="col-nome"><col style="width:32%"><col style="width:32%"></colgroup>
         <tbody>
           {% for c in closers_olympus %}
-          <tr>
+          <tr class="{{ 'linha--bateu' if c.bateu else '' }}">
             <td><span class="nome-grupo">{{ avatar_mini(c.nome) }}<span class="nome">{{ c.nome }}</span></span></td>
             <td>
               <span class="rotulo">Meta do dia</span>
@@ -709,6 +769,25 @@
       {% endif %}
     </div>
   </div>
+
+  {% if atividades_recentes %}
+  <div class="secao ticker-wrap">
+    <div class="ticker-trilho">
+      <div class="ticker-conteudo">
+        {% for item in atividades_recentes %}
+        <span class="ticker-item"><span class="ticker-icone">{{ item.icone }}</span>{{ item.texto }}</span>
+        <span class="ticker-sep">&bull;</span>
+        {% endfor %}
+      </div>
+      <div class="ticker-conteudo" aria-hidden="true">
+        {% for item in atividades_recentes %}
+        <span class="ticker-item"><span class="ticker-icone">{{ item.icone }}</span>{{ item.texto }}</span>
+        <span class="ticker-sep">&bull;</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <footer>{{ nome_painel }} &middot; Board Academy</footer>
 </div>
@@ -1031,6 +1110,73 @@
 
     iniciar();
   })();
+</script>
+<script>
+  // Celebração ao bater meta (pedido do João 03/11: "dash mais dinâmico") —
+  // só no cliente, sem depender de websocket/servidor. A cada carregada da
+  // página comparamos quem é o 1º SDR/Closer do dia com o que ficou salvo
+  // no localStorage DESTE navegador/TV pra essa MESMA data; se é alguém
+  // novo, dispara aviso + confete uma vez. Chave leva a data de hoje, então
+  // reseta sozinho todo dia, sem nada a mais no servidor — mesmo espírito
+  // do "Destaque Contínuo sem estado".
+  (function () {
+    try {
+      var hoje = {{ hoje_iso | tojson }};
+      var atual = {
+        sdr: {{ (primeiro_sdr_dia.nome if primeiro_sdr_dia else none) | tojson }},
+        closer: {{ (primeiro_closer_dia.nome if primeiro_closer_dia else none) | tojson }}
+      };
+      var chave = "boardBlackNovemberCelebracao_" + hoje;
+      var anteriorBruto = null;
+      try { anteriorBruto = localStorage.getItem(chave); } catch (e) { anteriorBruto = null; }
+
+      if (anteriorBruto === null) {
+        // 1ª carregada do dia nesta TV/navegador: só grava a referência,
+        // sem comemorar (senão comemora quem já tinha batido antes de
+        // abrir a página).
+        try { localStorage.setItem(chave, JSON.stringify(atual)); } catch (e) {}
+        return;
+      }
+
+      var anterior = {};
+      try { anterior = JSON.parse(anteriorBruto) || {}; } catch (e) { anterior = {}; }
+
+      var novos = [];
+      if (atual.sdr && atual.sdr !== anterior.sdr) novos.push(atual.sdr + " (SDR)");
+      if (atual.closer && atual.closer !== anterior.closer) novos.push(atual.closer + " (Closer)");
+
+      try { localStorage.setItem(chave, JSON.stringify(atual)); } catch (e) {}
+
+      if (novos.length) {
+        dispararCelebracao(novos.join(" e ") + " bateu a meta do dia! 🎉");
+      }
+    } catch (e) {
+      // nunca deixa essa "firula" derrubar o resto do painel
+    }
+  })();
+
+  function dispararCelebracao(mensagem) {
+    var aviso = document.createElement("div");
+    aviso.className = "celebracao-aviso";
+    aviso.textContent = mensagem;
+    document.body.appendChild(aviso);
+    setTimeout(function () { aviso.remove(); }, 6000);
+
+    var reduzMovimento = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduzMovimento) return;
+
+    var cores = ["#d4af37", "#3ecf8e", "#ffffff", "#b9a06a"];
+    for (var i = 0; i < 70; i++) {
+      var c = document.createElement("div");
+      c.className = "confete";
+      c.style.left = (Math.random() * 100) + "vw";
+      c.style.background = cores[Math.floor(Math.random() * cores.length)];
+      c.style.animationDuration = (2.4 + Math.random() * 1.6) + "s";
+      c.style.animationDelay = (Math.random() * 0.5) + "s";
+      document.body.appendChild(c);
+      (function (el) { setTimeout(function () { el.remove(); }, 5200); })(c);
+    }
+  }
 </script>
 </body>
 </html>

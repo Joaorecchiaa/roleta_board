@@ -15,13 +15,17 @@ mudar algo lá) mas SEM o pódio Top 3. Tem:
     Agendadas — igual o ARENA) — reintroduzido a pedido do João, 06/10
     (tinha saído na 1ª versão enxuta).
   - Detalhamento do dia (Closer, só squad OLYMPUS, meta/vendido do dia em
-    multiplicador) — PADRÃO desde 03/11. Entre 26/10 e 03/11 esse card tinha
+    multiplicador) — card padrão até 19/11. Entre 26/10 e 03/11 ele tinha
     sido substituído por um Termômetro de vendas Olympus com meta diária;
-    voltou a pedido do João (virada do mês). O termômetro não foi removido,
-    só virou EVENTO ESPECIAL: aparece no lugar do detalhamento de closers só
-    nas janelas de `_TERMOMETRO_OLYMPUS_EVENTOS` (a primeira é 15/11 a
-    21/11/26, meta R$300K pra semana inteira) — fora dessas janelas, o card
-    é sempre o detalhamento de closers.
+    voltou a pedido do João na virada do mês, virando EVENTO ESPECIAL
+    semanal (15 a 21/11, R$300K pra semana inteira). Pedido do João em
+    19/11: termômetro VOLTOU a ser diário (reseta toda meia-noite, meta por
+    dia — R$150K padrão, ver `_TERMOMETRO_OLYMPUS_META_PADRAO` e
+    `_TERMOMETRO_OLYMPUS_METAS_ESPECIAIS` pra dias com valor diferente) e
+    passou a ser o card PADRÃO de novo a partir de
+    `_TERMOMETRO_OLYMPUS_INICIO`, por tempo indeterminado — só antes dessa
+    data (ou se o João pedir pra desligar) o card volta a ser o
+    detalhamento de closers de sempre.
   - Meta do time — só Sniper e Olympus (Elite tirado a pedido do João, 05/10).
   - Destaque contínuo (Closer e SDR) — card que fica com a mesma pessoa até
     alguém bater o número ACUMULADO DO MÊS dela (reuniões validadas pro SDR;
@@ -345,30 +349,27 @@ def _dias_do_mes_ate(inicio, fim):
 
 
 # --- Termômetro de vendas Olympus (pedido do João, 26/10; reescrito 27/10;
-# CORRIGIDO 30/10; VIROU EVENTO ESPECIAL 03/11) ----------------------------
-# Até 03/11 o termômetro substituía o "Detalhamento do dia · Closer" todo
-# dia, com meta diária. Pedido do João (03/11, virada do mês): voltar o
-# "Detalhamento do dia · Closer" como padrão, e o termômetro só aparece em
-# janelas especiais (campanha/evento) — a primeira é a semana de 15/11 a
-# 21/11/26, meta R$300.000 pra SEMANA INTEIRA (não é diária — acumula a
-# semana toda, reseta só quando entra numa semana/evento novo). As semanas
-# seguintes ainda não têm valor decidido — só entram aqui quando o João
-# definir; sem entrada nesta lista pra uma data, o card volta a ser o
-# detalhamento de closers.
-_TERMOMETRO_OLYMPUS_EVENTOS = [
-    # (inicio, fim, meta, rótulo) — todos inclusive dos dois lados.
-    (date(2026, 11, 15), date(2026, 11, 21), 300_000, "Semana 15/11 a 21/11"),
-]
+# CORRIGIDO 30/10; VIROU EVENTO ESPECIAL/SEMANAL 03/11; VOLTOU A SER DIÁRIO
+# 19/11) ---------------------------------------------------------------
+# Entre 03/11 e 19/11 o termômetro só aparecia em janelas especiais com meta
+# ACUMULADA pra semana inteira (ex.: 15 a 21/11, R$300K pra semana toda).
+# Pedido do João em 19/11: virar diário de novo (reseta toda meia-noite,
+# meta por dia) a partir de `_TERMOMETRO_OLYMPUS_INICIO`, por tempo
+# indeterminado (sem data de fim — o card só volta a ser o "Detalhamento do
+# dia · Closer" se o João pedir pra desligar, mudando essa data pra um dia
+# no futuro ou removendo a comparação lá na view). Meta padrão R$150K/dia;
+# dias específicos podem ter um valor diferente via
+# `_TERMOMETRO_OLYMPUS_METAS_ESPECIAIS` (hoje, 19/11, o 1º dia do modo
+# diário, saiu com R$200K, pedido do próprio João nesse dia).
+_TERMOMETRO_OLYMPUS_INICIO = date(2026, 11, 19)
+_TERMOMETRO_OLYMPUS_META_PADRAO = 150_000
+_TERMOMETRO_OLYMPUS_METAS_ESPECIAIS = {
+    date(2026, 11, 19): 200_000,
+}
 
 
-def _periodo_termometro_olympus(hoje):
-    """Devolve (inicio, fim, meta, rótulo) do evento especial vigente pra
-    `hoje`, ou None se não tem nenhum (aí o painel mostra o detalhamento de
-    closers no lugar — ver mostrar_termometro_olympus na view)."""
-    for inicio, fim, meta, rotulo in _TERMOMETRO_OLYMPUS_EVENTOS:
-        if inicio <= hoje <= fim:
-            return inicio, fim, meta, rotulo
-    return None
+def _meta_termometro_olympus_do_dia(dia):
+    return _TERMOMETRO_OLYMPUS_METAS_ESPECIAIS.get(dia, _TERMOMETRO_OLYMPUS_META_PADRAO)
 
 
 def _vendas_diarias_olympus_mult(deals):
@@ -385,22 +386,19 @@ def _vendas_diarias_olympus_mult(deals):
     return por_dia
 
 
-def _termometro_olympus(deals_realizado_olympus, periodo, hoje):
-    """Monta o dict pronto pro template: meta/realizado/% do `periodo`
-    (inicio, fim, meta, rótulo) vigente — ver _periodo_termometro_olympus —
-    somando dia a dia a partir da MESMA lista de deals que compõe
-    `realizado_olympus` (squad Olympus + extra DONOS_VALIDOS_EXTRA_
-    FINANCEIRO_OLYMPUS), pra bater com o card "Meta do time" quando o
-    período for o mês inteiro."""
-    inicio, fim, meta, rotulo = periodo
+def _termometro_olympus_hoje(deals_realizado_olympus, hoje):
+    """Monta o dict pronto pro template: meta/realizado/% DE HOJE (modo
+    diário, ver comentário acima) a partir da MESMA lista de deals que
+    compõe `realizado_olympus` (squad Olympus + extra DONOS_VALIDOS_EXTRA_
+    FINANCEIRO_OLYMPUS), só quebrada pro dia de hoje — nenhuma regra de
+    negócio nova, só reaproveita _valor_multiplicador de sempre."""
+    meta = _meta_termometro_olympus_do_dia(hoje)
     vendas_por_dia = _vendas_diarias_olympus_mult(deals_realizado_olympus)
-    fim_soma = min(fim, hoje)
-    realizado = sum(vendas_por_dia.get(d, 0.0) for d in _dias_do_mes_ate(inicio, fim_soma))
+    realizado = vendas_por_dia.get(hoje, 0.0)
     pct = round((realizado / meta) * 100, 1) if meta else None
     return {
-        "label_periodo": rotulo,
-        "inicio": inicio.strftime("%d/%m"),
-        "fim": fim.strftime("%d/%m"),
+        "label_periodo": "Hoje",
+        "data": hoje.strftime("%d/%m"),
         "meta": meta,
         "realizado": realizado,
         "pct": pct,
@@ -1062,8 +1060,8 @@ def _calcular_dados(month_str):
         crn_texto.norm(n) for n in config.DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS
     }
     # deals_extra_financeiro_olympus: guardado à parte (não só a soma) pra
-    # alimentar o termômetro (_termometro_olympus) com a MESMA população do
-    # "Meta do time" — ver uso logo abaixo de closers_olympus.
+    # alimentar o termômetro (_termometro_olympus_hoje) com a MESMA
+    # população do "Meta do time" — ver uso logo abaixo de closers_olympus.
     deals_extra_financeiro_olympus = []
     for deal in validos:
         dono_norm = crn_texto.norm(usuarios.get(crn_texto.dono_id(deal), ""))
@@ -1254,19 +1252,17 @@ def _calcular_dados(month_str):
         },
     }
 
-    # --- Card da direita: Termômetro de vendas Olympus SE hoje cair numa
-    # janela especial (_TERMOMETRO_OLYMPUS_EVENTOS), senão o Detalhamento do
-    # dia · Closer de sempre (padrão desde 03/11 — ver nota no topo do
-    # arquivo). Termômetro usa a MESMA população/fonte de `realizado_olympus`
-    # (squad Olympus + extra DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), só
-    # quebrada por dia.
-    _periodo_termometro = _periodo_termometro_olympus(hoje)
-    mostrar_termometro_olympus = _periodo_termometro is not None
+    # --- Card da direita: Termômetro de vendas Olympus a partir de
+    # _TERMOMETRO_OLYMPUS_INICIO (modo diário, ver nota no topo do arquivo),
+    # senão o Detalhamento do dia · Closer de sempre. Termômetro usa a MESMA
+    # população/fonte de `realizado_olympus` (squad Olympus + extra
+    # DONOS_VALIDOS_EXTRA_FINANCEIRO_OLYMPUS), só quebrada por dia.
+    mostrar_termometro_olympus = hoje >= _TERMOMETRO_OLYMPUS_INICIO
     termometro_olympus = None
     closers_olympus = []
     if mostrar_termometro_olympus:
-        termometro_olympus = _termometro_olympus(
-            deals_olympus + deals_extra_financeiro_olympus, _periodo_termometro, hoje
+        termometro_olympus = _termometro_olympus_hoje(
+            deals_olympus + deals_extra_financeiro_olympus, hoje
         )
     else:
         # Detalhamento Closer (só squad OLYMPUS): meta do dia e vendido hoje

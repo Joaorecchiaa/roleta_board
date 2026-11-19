@@ -349,6 +349,8 @@ SDRS_SEM_DESTAQUE_DIA = {
 COLABORADORES_REMOVIDOS_MANUALMENTE = {
     "Natália Ferreira",
     "Camila Cardoso",
+    # Guilherme Vaillant: saiu do time (pedido do João, 19/11/2026).
+    "Guilherme Vaillant",
 }
 
 # Líderes (Team Leader/Head) que PODEM validar reunião pra conta própria

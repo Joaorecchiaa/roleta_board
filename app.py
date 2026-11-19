@@ -756,6 +756,16 @@ def _calcular_dados(month_str):
         avisos.append(f"Não consegui ler Colab/Metas pela CRN ({e}) — squads/metas ficam incompletos neste cálculo.")
         colab, metas = [], []
 
+    # Exclusão manual de colaboradores que JÁ SAÍRAM do time (ver
+    # config.COLABORADORES_REMOVIDOS_MANUALMENTE — ajuste do PAINEL, não é
+    # regra da CRN) — aplicada aqui, ANTES de qualquer lista derivar de
+    # colab/metas (sdr_ids, closer_ids, lideranca_ids, membros_olympus,
+    # nomes_sniper_norm etc.), pra cascatear em tudo de uma vez só (pedido
+    # do João 19/11: Guilherme Vaillant saiu do time).
+    _removidos_norm = {crn_texto.norm(n) for n in config.COLABORADORES_REMOVIDOS_MANUALMENTE}
+    colab = [p for p in colab if p["nome_norm"] not in _removidos_norm]
+    metas = [m for m in metas if m["nome_norm"] not in _removidos_norm]
+
     usuarios = crn_pd.usuarios()
     funis = crn_pd.funis()
     meta_por_nome = {m["nome_norm"]: m for m in metas}

@@ -486,6 +486,16 @@
   }
   .ticker-conteudo { display: flex; align-items: center; flex-shrink: 0; animation: tickerRolar 70s linear infinite; }
   @keyframes tickerRolar { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+  /* Usada só quando tem pouca notícia no dia (ver script no fim do
+     arquivo) — percorre a tela INTEIRA (começa fora da tela à direita,
+     termina fora da tela à esquerda) em vez de só deslocar pela própria
+     largura (que com 1 notícia só é um trechinho — pedido do João 19/11:
+     "só passa no começo"). --ticker-inicio/--ticker-fim são setados em
+     JS, em pixels; os valores aqui são só fallback. */
+  @keyframes tickerRolarCompleto {
+    from { transform: translateX(var(--ticker-inicio, 100vw)); }
+    to { transform: translateX(var(--ticker-fim, -100%)); }
+  }
   .ticker-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text); padding: 0 10px; }
   .ticker-icone { font-size: 0.875rem; line-height: 1; }
   .ticker-sep { color: var(--muted); }
@@ -1426,6 +1436,14 @@
   // notícia 2x lado a lado sem nem precisar rolar. Com pouca notícia, a
   // faixa espelho fica vazia (sem conteúdo nenhum pra duplicar) — pode
   // sobrar um trecho em branco no fim do loop, preferível a duplicata.
+  // AJUSTADO (mesmo pedido, 3ª rodada — "só passa no começo"): nesse caso
+  // de pouca notícia (faixa espelho vazia), o keyframe padrão
+  // (translateX(0) → -100%, ou seja, desloca só pela PRÓPRIA largura da
+  // faixa) faz um item estreito (ex.: 1 notícia só) percorrer um
+  // trechinho mínimo da tela antes de resetar, em vez de atravessar a
+  // tela inteira. Nesse caso a gente troca pro keyframe
+  // "tickerRolarCompleto" (começa fora da tela à direita, termina fora
+  // da tela à esquerda — ver CSS), calculando a distância real em pixel.
   (function () {
     try {
       var trilho = document.querySelector(".ticker-trilho");
@@ -1437,7 +1455,8 @@
       if (!principal.children.length) return;
 
       var larguraContainer = trilho.clientWidth || window.innerWidth;
-      if (principal.scrollWidth >= larguraContainer) {
+      var contentSuficiente = principal.scrollWidth >= larguraContainer;
+      if (contentSuficiente) {
         espelho.innerHTML = principal.innerHTML;
       } else {
         espelho.innerHTML = "";
@@ -1458,9 +1477,27 @@
       // notícias do dia, porque translateX(-100%) percorre a largura da
       // própria faixa: mais itens = faixa mais larga = mesma duração
       // cobre mais pixel = parece mais rápido. Calculando a duração em
-      // cima da largura real a velocidade fica sempre a mesma.
+      // cima da distância real percorrida a velocidade fica sempre a
+      // mesma.
       var PIXELS_POR_SEGUNDO = 15;
-      var duracao = Math.max(principal.scrollWidth / PIXELS_POR_SEGUNDO, 20);
+      var distancia;
+      if (contentSuficiente) {
+        // Loop sem costura padrão: desloca pela própria largura da faixa.
+        principal.style.animationName = "tickerRolar";
+        espelho.style.animationName = "tickerRolar";
+        principal.style.removeProperty("--ticker-inicio");
+        principal.style.removeProperty("--ticker-fim");
+        distancia = principal.scrollWidth;
+      } else {
+        // Pouca notícia: atravessa a tela inteira (fora da tela à
+        // direita até fora da tela à esquerda), pra não ficar "preso" no
+        // canto esquerdo.
+        principal.style.animationName = "tickerRolarCompleto";
+        principal.style.setProperty("--ticker-inicio", larguraContainer + "px");
+        principal.style.setProperty("--ticker-fim", (-principal.scrollWidth) + "px");
+        distancia = larguraContainer + principal.scrollWidth;
+      }
+      var duracao = Math.max(distancia / PIXELS_POR_SEGUNDO, 20);
       faixas.forEach(function (faixa) { faixa.style.animationDuration = duracao + "s"; });
     } catch (e) {
       // nunca deixa essa "firula" derrubar o resto do painel

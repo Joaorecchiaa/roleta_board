@@ -1406,14 +1406,21 @@
     }
   })();
 
-  // Ticker de atividade recente — preenche o "gap" vazio no fim do loop
-  // (pedido do João 03/11): com poucas notícias no dia, as duas faixas
-  // duplicadas (pensadas pro scroll sem costura) ficavam mais estreitas
-  // que a tela, sobrando um trecho em branco antes de repetir. Aqui a
-  // gente repete os itens da faixa principal até ela ficar mais larga
-  // que o container e só então espelha o resultado na faixa escondida —
-  // sem isso nenhum item novo, só garante que sempre tem conteúdo
-  // passando, não importa se o dia tem 1 notícia ou 15.
+  // Ticker de atividade recente.
+  // Histórico (pedido do João 03/11): com poucas notícias no dia, as duas
+  // faixas duplicadas (pensadas pro scroll sem costura) ficavam mais
+  // estreitas que a tela, sobrando um trecho em branco antes de repetir —
+  // a solução de então era clonar os itens da faixa principal até ela
+  // ficar mais larga que o container.
+  // REVERTIDO (pedido do João 19/11): com 1 (ou poucas) notícia(s) no dia,
+  // esse preenchimento repetia a MESMA informação várias vezes seguidas
+  // na tela ("Fabio Parim vendeu R$ 8.000 hoje" diversas vezes em fila) —
+  // o João prefere isso a ver a mesma notícia repetida: "deixe apenas 1
+  // informação da venda, não várias da mesma". Então aqui só espelha a
+  // faixa principal (já com os itens reais, 1x cada) na faixa escondida,
+  // pro scroll sem costura — sem clonar/repetir item nenhum. Se o dia
+  // tiver pouca notícia, pode sobrar um trecho em branco no fim do loop
+  // (preferível a mostrar duplicata).
   (function () {
     try {
       var trilho = document.querySelector(".ticker-trilho");
@@ -1424,27 +1431,13 @@
       var espelho = faixas[1];
       if (!principal.children.length) return;
 
-      var larguraAlvo = trilho.clientWidth || window.innerWidth;
-      var itensOriginais = Array.prototype.slice.call(principal.children);
-      var clonesNovos = [];
-      var tentativas = 0;
-      while (principal.scrollWidth < larguraAlvo * 1.1 && tentativas < 30) {
-        itensOriginais.forEach(function (el) {
-          var clone = el.cloneNode(true);
-          principal.appendChild(clone);
-          clonesNovos.push(clone);
-        });
-        tentativas++;
-      }
       espelho.innerHTML = principal.innerHTML;
 
-      // Os itens originais (1ª cópia da faixa principal) já tiveram a foto
-      // ligada pelo script de fotos, que roda antes deste — reprocessar
-      // eles de novo trocaria o src e "piscaria". Só os nós novos (as
-      // repetições acrescentadas acima + a faixa espelho inteira, que foi
-      // reconstruída do zero pelo innerHTML) precisam da foto ligada aqui.
+      // Os itens originais (faixa principal) já tiveram a foto ligada pelo
+      // script de fotos, que roda antes deste — reprocessar eles de novo
+      // trocaria o src e "piscaria". Só a faixa espelho (reconstruída do
+      // zero pelo innerHTML acima) precisa da foto ligada aqui.
       if (window.__boardBlackNovemberIniciarFotos) {
-        clonesNovos.forEach(function (clone) { window.__boardBlackNovemberIniciarFotos(clone); });
         window.__boardBlackNovemberIniciarFotos(espelho);
       }
 
@@ -1454,8 +1447,7 @@
       // notícias do dia, porque translateX(-100%) percorre a largura da
       // própria faixa: mais itens = faixa mais larga = mesma duração
       // cobre mais pixel = parece mais rápido. Calculando a duração em
-      // cima da largura real (já com as repetições acima incluídas) a
-      // velocidade fica sempre a mesma.
+      // cima da largura real a velocidade fica sempre a mesma.
       var PIXELS_POR_SEGUNDO = 15;
       var duracao = Math.max(principal.scrollWidth / PIXELS_POR_SEGUNDO, 20);
       faixas.forEach(function (faixa) { faixa.style.animationDuration = duracao + "s"; });

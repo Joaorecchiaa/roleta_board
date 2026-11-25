@@ -684,13 +684,20 @@ def _primeiro_sdr_bateu_meta(eventos_validados_hoje, metas_diarias_sdr, agendame
     'sdr'/'momento'). Continua exigindo bater as DUAS metas do dia
     (Validadas E Agendadas) pra ganhar o troféu, igual antes.
     SDRS_SEM_DESTAQUE_DIA continua sendo um ajuste do PAINEL (rampagem
-    temporária), não uma regra da CRN."""
+    temporária), não uma regra da CRN.
+    CORRIGIDO (bug visto em produção 25/11: 'TypeError: can't compare
+    offset-naive and offset-aware datetimes' em `horarios.sort()`) —
+    `ev['momento']` vem da CRN e pode ser timezone-aware; mistura com
+    outro evento naive no mesmo dia (ex.: fusos diferentes dependendo da
+    atividade) já derrubava a página. Mesmo fix do `_sem_fuso` usado em
+    `_atividades_recentes_hoje` desde 03/11 pro mesmo motivo — só tira o
+    tzinfo pra poder ordenar, não muda a hora em si (já em Brasília)."""
     por_sdr = defaultdict(list)
     for ev in eventos_validados_hoje:
         sdr_nome = ev["sdr"]
         if not sdr_nome or sdr_nome in config.SDRS_SEM_DESTAQUE_DIA:
             continue
-        por_sdr[sdr_nome].append(ev["momento"])
+        por_sdr[sdr_nome].append(_sem_fuso(ev["momento"]))
 
     candidatos = []
     for nome, horarios in por_sdr.items():
